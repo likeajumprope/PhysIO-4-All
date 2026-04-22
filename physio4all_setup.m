@@ -45,7 +45,7 @@ function isSuccessful = ensure_submodules_present(repo_root, dependency_dirs)
 
 isSuccessful = true;
 
-missing_dependencies = dependency_dirs(~cellfun(@isfolder, dependency_dirs));
+missing_dependencies = dependency_dirs(~cellfun( @(X) (isfolder(X) && numel(dir(X))>2), dependency_dirs));
 if isempty(missing_dependencies)
     fprintf('Git submodule check: OK.\n');
     return;
