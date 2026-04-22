@@ -1,6 +1,7 @@
 [submodule "external/spm"]
 	path = external/spm
 	url = https://github.com/spm/spm.git
+	shallow = true
 [submodule "external/PhysIO"]
 	path = external/PhysIO
 	url = https://github.com/ComputationalPsychiatry/PhysIO.git
