@@ -44,6 +44,25 @@ This does
 2. Link `PhysIO` to `external/spm/toolbox/PhysIO` for usage of PhysIO in the SPM Batch Editor.
 3. Adds the right folders to the Matlab path.
 
+## Example Data
+
+To download the first example dataset used in `mrikasper/brainhack-physio`, run:
+
+```matlab
+physio4all_download_example_data("brainhack_physio_ds004808")
+```
+
+This defaults to `sub-46` and creates a reproducible subset under `data/brainhack_physio/ds004808`.
+
+To request specific subjects, pass a numeric subject ID or vector as the second input:
+
+```matlab
+physio4all_download_example_data("brainhack_physio_ds004808", 44)
+physio4all_download_example_data("brainhack_physio_ds004808", [44 46])
+```
+
+If a requested subject has no upstream OSF physio logs, the downloader warns and still downloads the imaging files from OpenNeuro.
+
 
 ### Manual Installation
 
