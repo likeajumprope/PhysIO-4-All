@@ -63,6 +63,60 @@ physio4all_download_example_data("brainhack_physio_ds004808", [44 46])
 
 If a requested subject has no upstream OSF physio logs, the downloader warns and still downloads the imaging files from OpenNeuro.
 
+## Run an Example
+
+The preferred identifier for the BrainHack example is
+`brainhack23_ds004808`. The earlier `brainhack_physio_ds004808` identifier
+remains available as an alias.
+
+```matlab
+physio4all_setup
+results = physio4all_run("brainhack23_ds004808", ...
+    Subject="sub-46", Run=1);
+```
+
+The pipeline keeps downloaded data unchanged:
+
+```text
+data/          downloaded inputs
+work/          disposable preprocessing files
+derivatives/   PhysIO, GLM, statistical maps, and assessment reports
+```
+
+Reusable implementation functions live in the `physio4all` namespace under
+`src/+physio4all`. The setup function adds `src`, which is the namespace
+parent, and does not add the `+physio4all` folder itself.
+
+## Repository Structure
+
+The `examples/` folder contains **code and documentation describing each
+example**, not the downloaded example data. An example definition specifies
+how to find the dataset files, which acquisition metadata and PhysIO settings
+to use, and which pipeline options are appropriate for that dataset.
+
+```text
+PhysIO-4-All/
+├── examples/                       Dataset-specific configurations and documentation
+│   └── brainhack23_ds004808/
+│       ├── physio4all_example_brainhack23_ds004808.m
+│       └── README.md
+├── src/
+│   └── +physio4all/                Reusable pipeline namespace
+├── tests/                          MATLAB unit tests
+├── data/                           Downloaded input datasets (Git-ignored)
+├── work/                           Disposable processing copies/intermediates (Git-ignored)
+├── derivatives/                    Durable PhysIO, GLM, map, and report outputs (Git-ignored)
+├── physio4all_run.m                Public pipeline entry point
+├── physio4all_setup.m              Path and dependency setup
+└── physio4all_download_example_data.m
+```
+
+This separation keeps dataset-specific decisions small and reviewable while
+sharing the preprocessing, PhysIO computation, GLM, and assessment
+implementation across all examples. Downloaded inputs remain unchanged under
+`data/`; SPM can modify copies under `work/`; and outputs intended for review
+or reuse are written under `derivatives/`.
+
 
 ### Manual Installation
 

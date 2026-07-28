@@ -3,6 +3,7 @@ function physio4all_setup()
 
 %% Define dependency locations within repository
 repo_root = fileparts(mfilename('fullpath'));
+src_dir = fullfile(repo_root, 'src');
 spm_dir = fullfile(repo_root, 'external', 'spm');
 physio_dir = fullfile(repo_root, 'external', 'PhysIO');
 
@@ -11,13 +12,19 @@ ensure_submodules_present(repo_root, {spm_dir, physio_dir});
 
 assert_dependency_present(spm_dir, 'SPM');
 assert_dependency_present(physio_dir, 'PhysIO');
+assert_dependency_present(src_dir, 'PhysIO-4-All source');
 
-%% Add core SPM and PhysIO folders to Matlab path
+%% Add public entry points and namespace parent to MATLAB path
+% Add src, not src/+physio4all. MATLAB resolves +physio4all as a namespace
+% when its parent folder is on the path.
+addpath(repo_root);
+addpath(src_dir);
+
+%% Add core SPM and PhysIO folders to MATLAB path
 addpath(spm_dir);
 addpath(genpath(physio_dir));
 
 %% Make PhysIO visible inside SPM/toolbox for Batch Editor integration
-current_dir = pwd;
 [~, spm_physio_dir] = ensure_physio_spm_toolbox_integration(spm_dir, physio_dir);
 
 %% Add SPM toolboxes after potential PhysIO integration step and remove original PhysIO folder from path
@@ -27,6 +34,8 @@ if isfolder(spm_physio_dir)
 end
 
 %% Report resulting setup status
+fprintf('Added PhysIO-4-All entry points to path: %s\n', repo_root);
+fprintf('Added PhysIO-4-All namespace parent to path: %s\n', src_dir);
 fprintf('Added SPM to path: %s\n', spm_dir);
 fprintf('Added PhysIO to path: %s\n', physio_dir);
 
@@ -36,6 +45,10 @@ end
 
 if exist('tapas_physio_new', 'file') ~= 2
     warning('PhysIO does not appear to be available on the MATLAB path.');
+end
+
+if isempty(which('physio4all.run'))
+    warning('The physio4all namespace does not appear to be available.');
 end
 
 end

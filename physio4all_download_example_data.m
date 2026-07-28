@@ -4,9 +4,9 @@ function physio4all_download_example_data(exampleIDs, subjectIDs, dataRoot, doOv
 % Usage:
 %   physio4all_download_example_data
 %   physio4all_download_example_data("info")
-%   physio4all_download_example_data("brainhack_physio_ds004808")
-%   physio4all_download_example_data("brainhack_physio_ds004808", 44)
-%   physio4all_download_example_data("brainhack_physio_ds004808", [44 46])
+%   physio4all_download_example_data("brainhack23_ds004808")
+%   physio4all_download_example_data("brainhack23_ds004808", 44)
+%   physio4all_download_example_data("brainhack23_ds004808", [44 46])
 %
 % Inputs:
 %   exampleIDs  Dataset ID(s) to download, or "info"
@@ -64,7 +64,7 @@ for iExample = 1:numel(exampleIDs)
     fprintf('Downloading: %s\n', exampleID);
 
     switch exampleID
-        case "brainhack_physio_ds004808"
+        case {"brainhack23_ds004808", "brainhack_physio_ds004808"}
             destRoot = fullfile(dataRoot, 'brainhack_physio', 'ds004808');
             physio4all_download_example_data_brainhack_physio_ds004808(destRoot, subjectIDs, doOverwrite);
     end
@@ -78,10 +78,12 @@ end
 
 function registry = availableDatasets()
 registry.ids = [
+    "brainhack23_ds004808"
     "brainhack_physio_ds004808"
 ];
 
 registry.description = [
+    "BrainHack 2023 example based on OpenNeuro ds004808 plus OSF physio logs (preferred ID)"
     "BrainHack PhysIO example based on OpenNeuro ds004808 plus OSF physio logs (defaults to sub-46; subject IDs can be passed as second input)"
 ];
 end
