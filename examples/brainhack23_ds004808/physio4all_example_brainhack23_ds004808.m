@@ -27,9 +27,5 @@ example.preprocessing.interpolation = 4;
 
 example.physio.vendor = "Siemens_Tics";
 example.physio.alignScan = "last";
-% This dataset uses 28 physical slices with MB=2. The Siemens scan-timing
-% log and current PhysIO onset detection require the physical slice count,
-% while the SPM GLM uses the 14 unique slice-acquisition events.
-example.physio.sliceCountMode = "physical";
 example.physio.cardiacModality = "PPU";
 end

@@ -39,8 +39,9 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
             testCase.verifyEqual(runInfo.repetitionTime, 1.25, AbsTol=1e-12);
             testCase.verifyEqual(runInfo.nSlices, 4);
             testCase.verifyEqual(runInfo.nSliceEvents, 2);
-            testCase.verifyEqual(runInfo.physioNSlices, 4);
-            testCase.verifyEqual(runInfo.physioOnsetSlice, 2);
+            testCase.verifyEqual(runInfo.onsetSlice, 2);
+            testCase.verifyEqual(runInfo.physioNSlices, 2);
+            testCase.verifyEqual(runInfo.physioOnsetSlice, 1);
             testCase.verifyEqual(runInfo.multibandFactor, 2);
         end
 
@@ -79,6 +80,14 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
             testCase.verifyTrue(isfield(glmBatch{1}.spm.stats, "fmri_spec"));
             testCase.verifyTrue(iscellstr( ...
                 glmBatch{1}.spm.stats.fmri_spec.sess.scans));
+            testCase.verifyEqual( ...
+                glmBatch{1}.spm.stats.fmri_spec.timing.fmri_t, 4);
+            testCase.verifyEqual( ...
+                glmBatch{1}.spm.stats.fmri_spec.timing.fmri_t0, 2);
+            testCase.verifyEqual( ...
+                physioBatch{1}.spm.tools.physio.scan_timing.sqpar.Nslices, 2);
+            testCase.verifyEqual( ...
+                physioBatch{1}.spm.tools.physio.scan_timing.sqpar.onset_slice, 1);
         end
 
         function testPreprocessingPromotesAndReusesCheckpoint(testCase)
