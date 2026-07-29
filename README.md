@@ -71,6 +71,29 @@ results = physio4all_run("brainhack23_ds004808", ...
     Subject="sub-46", Run=1, Model="model-001");
 ```
 
+For a fresh run that keeps disposable preprocessing files on a local scratch
+disk while retaining durable outputs under the repository's `derivatives/`
+folder, use:
+
+```matlab
+physio4all_setup
+results = physio4all_run("brainhack23_ds004808", ...
+    Subject="sub-46", ...
+    Run=1, ...
+    Model="model-001", ...
+    WorkRoot="C:\Users\kasperla\TEMP\physio4all\work", ...
+    Overwrite=true, ...
+    EnableDiary=true, ...
+    ComputeTsnrGains=true, ...
+    Verbose=true);
+```
+
+`WorkRoot` can point to any writable scratch location. `Overwrite=true`
+recomputes the requested stages instead of reusing their checkpoints. The
+remaining options above are the defaults and are shown explicitly to make the
+run configuration clear. Unless `Stages` is specified, the pipeline runs
+preprocessing, PhysIO computation, GLM estimation, and assessment.
+
 Pipeline output is also appended incrementally to a predictable diary:
 
 ```text
