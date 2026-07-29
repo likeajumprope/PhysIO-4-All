@@ -27,5 +27,8 @@ example.preprocessing.interpolation = 4;
 
 example.physio.vendor = "Siemens_Tics";
 example.physio.alignScan = "last";
+% HACK for now because of a bug in tapas_physio_get_onsets_from_locs.
+% This should be nSlicesTotal/multibandFactor.
+example.physio.nSlices = 28;
 example.physio.cardiacModality = "PPU";
 end

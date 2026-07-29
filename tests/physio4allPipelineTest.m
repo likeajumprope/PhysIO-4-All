@@ -31,6 +31,7 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
         function testResolveFilesReadsMetadata(testCase)
             fixture = testCase.createDatasetFixture();
             example = physio4all.get_example("brainhack23_ds004808");
+            example.physio = rmfield(example.physio, "nSlices");
 
             runInfo = physio4all.resolve_files( ...
                 example, "sub-46", 1, fixture.DataRoot);
@@ -43,6 +44,18 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
             testCase.verifyEqual(runInfo.physioNSlices, 2);
             testCase.verifyEqual(runInfo.physioOnsetSlice, 1);
             testCase.verifyEqual(runInfo.multibandFactor, 2);
+        end
+
+        function testBrainhackExampleUsesPhysioSliceWorkaround(testCase)
+            fixture = testCase.createDatasetFixture();
+            example = physio4all.get_example("brainhack23_ds004808");
+
+            runInfo = physio4all.resolve_files( ...
+                example, "sub-46", 1, fixture.DataRoot);
+
+            testCase.verifyEqual(example.physio.nSlices, 28);
+            testCase.verifyEqual(runInfo.physioNSlices, 28);
+            testCase.verifyEqual(runInfo.physioOnsetSlice, 14);
         end
 
         function testBatchBuildersReturnExpectedModules(testCase)
@@ -85,9 +98,9 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
             testCase.verifyEqual( ...
                 glmBatch{1}.spm.stats.fmri_spec.timing.fmri_t0, 2);
             testCase.verifyEqual( ...
-                physioBatch{1}.spm.tools.physio.scan_timing.sqpar.Nslices, 2);
+                physioBatch{1}.spm.tools.physio.scan_timing.sqpar.Nslices, 28);
             testCase.verifyEqual( ...
-                physioBatch{1}.spm.tools.physio.scan_timing.sqpar.onset_slice, 1);
+                physioBatch{1}.spm.tools.physio.scan_timing.sqpar.onset_slice, 14);
         end
 
         function testPreprocessingPromotesAndReusesCheckpoint(testCase)

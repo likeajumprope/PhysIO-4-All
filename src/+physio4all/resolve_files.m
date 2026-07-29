@@ -67,7 +67,8 @@ if fix(runInfo.nSliceEvents) ~= runInfo.nSliceEvents
         runInfo.nSlices, runInfo.multibandFactor);
 end
 runInfo.onsetSlice = ceil(runInfo.nSlices / 2);
-runInfo.physioNSlices = runInfo.nSliceEvents;
+runInfo.physioNSlices = getOptionalField( ...
+    example.physio, "nSlices", runInfo.nSliceEvents);
 runInfo.physioOnsetSlice = ceil(runInfo.physioNSlices / 2);
 runInfo.taskName = string(getOptionalField(metadata, "TaskName", "unknown"));
 
