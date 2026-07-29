@@ -49,7 +49,7 @@ This does
 To download the first example dataset used in `mrikasper/brainhack-physio`, run:
 
 ```matlab
-physio4all_download_example_data("brainhack_physio_ds004808")
+physio4all_download_example_data("brainhack23_ds004808")
 ```
 
 This defaults to `sub-46` and creates a reproducible subset under `data/brainhack_physio/ds004808`.
@@ -57,17 +57,13 @@ This defaults to `sub-46` and creates a reproducible subset under `data/brainhac
 To request specific subjects, pass a numeric subject ID or vector as the second input:
 
 ```matlab
-physio4all_download_example_data("brainhack_physio_ds004808", 44)
-physio4all_download_example_data("brainhack_physio_ds004808", [44 46])
+physio4all_download_example_data("brainhack23_ds004808", 44)
+physio4all_download_example_data("brainhack23_ds004808", [44 46])
 ```
 
 If a requested subject has no upstream OSF physio logs, the downloader warns and still downloads the imaging files from OpenNeuro.
 
 ## Run an Example
-
-The preferred identifier for the BrainHack example is
-`brainhack23_ds004808`. The earlier `brainhack_physio_ds004808` identifier
-remains available as an alias.
 
 ```matlab
 physio4all_setup

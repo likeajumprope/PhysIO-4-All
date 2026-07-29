@@ -9,7 +9,7 @@ exampleID = lower(string(exampleID));
 repoRoot = fileparts(fileparts(fileparts(mfilename('fullpath'))));
 
 switch exampleID
-    case {"brainhack23_ds004808", "brainhack_physio_ds004808", "ds004808"}
+    case "brainhack23_ds004808"
         configFolder = fullfile(repoRoot, "examples", "brainhack23_ds004808");
         originalPath = path;
         restorePath = onCleanup(@() path(originalPath));

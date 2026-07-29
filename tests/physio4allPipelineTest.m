@@ -28,14 +28,6 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
                 char(fullfile(namespaceFolder, "run.m")));
         end
 
-        function testExampleAliasesResolveToCanonicalID(testCase)
-            canonical = physio4all.get_example("brainhack23_ds004808");
-            legacy = physio4all.get_example("brainhack_physio_ds004808");
-
-            testCase.verifyEqual(canonical.id, "brainhack23_ds004808");
-            testCase.verifyEqual(legacy.id, canonical.id);
-        end
-
         function testResolveFilesReadsMetadata(testCase)
             fixture = testCase.createDatasetFixture();
             example = physio4all.get_example("brainhack23_ds004808");
@@ -151,6 +143,19 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
                 "model-003", ...
                 "sub-01_run-02_model-003_pipeline.log");
             testCase.verifyEqual(logFile, expected);
+        end
+
+        function testAutomaticDiaryInitializesBeforeDataResolution(testCase)
+            fixtureRoot = string(tempname);
+            mkdir(fixtureRoot);
+            testCase.addTeardown(@() rmdir(fixtureRoot, "s"));
+
+            testCase.verifyError(@() physio4all_run( ...
+                "brainhack23_ds004808", ...
+                DataRoot=fullfile(fixtureRoot, "missing-data"), ...
+                DerivativesRoot=fullfile(fixtureRoot, "derivatives"), ...
+                EnableDiary=true, Verbose=false), ...
+                "physio4all:MissingFile");
         end
     end
 

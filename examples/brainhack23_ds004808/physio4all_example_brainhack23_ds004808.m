@@ -2,7 +2,6 @@ function example = physio4all_example_brainhack23_ds004808()
 %PHYSIO4ALL_EXAMPLE_BRAINHACK23_DS004808 Configure the BrainHack example.
 
 example.id = "brainhack23_ds004808";
-example.aliases = ["brainhack_physio_ds004808", "ds004808"];
 example.name = "BrainHack 2023 brainstem fMRI example";
 example.description = [ ...
     "OpenNeuro ds004808 imaging with Siemens physiological recordings " ...

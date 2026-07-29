@@ -34,6 +34,15 @@ dataRoot = resolveRoot(options.DataRoot, example.repoRoot, "data");
 workRoot = resolveRoot(options.WorkRoot, example.repoRoot, "work");
 derivativesRoot = resolveRoot( ...
     options.DerivativesRoot, example.repoRoot, "derivatives");
+runLabel = sprintf("run-%02d", options.Run);
+workFolder = fullfile(workRoot, example.id, subjectID, runLabel, "preproc");
+derivativeRunFolder = fullfile( ...
+    derivativesRoot, example.id, subjectID, runLabel);
+preprocessFolder = fullfile(derivativeRunFolder, "preproc");
+physioFolder = fullfile(derivativeRunFolder, "physio");
+glmFolder = fullfile(derivativeRunFolder, "glm", model.id);
+assessmentFolder = fullfile(derivativeRunFolder, "assessment", ...
+    model.id);
 
 stages = lower(string(options.Stages));
 validStages = ["preprocess", "compute_physio", "fit_glm", "assess_physio"];
@@ -65,15 +74,6 @@ spm_jobman("initcfg");
 
 runInfo = physio4all.resolve_files( ...
     example, subjectID, options.Run, dataRoot);
-runLabel = sprintf("run-%02d", options.Run);
-workFolder = fullfile(workRoot, example.id, subjectID, runLabel, "preproc");
-derivativeRunFolder = fullfile( ...
-    derivativesRoot, example.id, subjectID, runLabel);
-preprocessFolder = fullfile(derivativeRunFolder, "preproc");
-physioFolder = fullfile(derivativeRunFolder, "physio");
-glmFolder = fullfile(derivativeRunFolder, "glm", model.id);
-assessmentFolder = fullfile(derivativeRunFolder, "assessment", ...
-    model.id);
 
 if options.Verbose
     fprintf("\n=== PhysIO-4-All: %s / %s / %s ===\n", ...

@@ -1,4 +1,5 @@
-function physio4all_download_example_data_brainhack_physio_ds004808(destRoot, subjectIDs, doOverwrite)
+function physio4all_download_example_data_brainhack23_ds004808( ...
+        destRoot, subjectIDs, doOverwrite)
 %PHYSIO4ALL_DOWNLOAD_EXAMPLE_DATA_BRAINHACK_PHYSIO_DS004808
 % Download the first PhysIO-4-All example dataset.
 %
@@ -186,6 +187,6 @@ for iFile = 1:size(manifest, 1)
     end
 
     fprintf('  downloading: %s\n', relPath);
-    websave(outFile, url, weboptions('Timeout', 120)); %#ok<WEBSAVE>
+    websave(outFile, url, weboptions('Timeout', 120));
 end
 end
