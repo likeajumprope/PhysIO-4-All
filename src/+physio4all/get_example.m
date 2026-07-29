@@ -21,6 +21,7 @@ switch exampleID
 end
 
 example.repoRoot = string(repoRoot);
+example.configFolder = string(configFolder);
 example = physio4all.validate_example(example);
 
 end

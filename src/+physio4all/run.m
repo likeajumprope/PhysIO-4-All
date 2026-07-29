@@ -5,18 +5,24 @@ arguments
     exampleID {mustBeTextScalar}
     options.Subject {mustBeTextScalar} = ""
     options.Run (1,1) {mustBeNumeric, mustBeInteger, mustBePositive, mustBeReal} = 1
+    options.Model {mustBeTextScalar} = ""
     options.Stages {mustBeText} = ...
         ["preprocess", "compute_physio", "fit_glm", "assess_physio"]
     options.DataRoot {mustBeTextScalar} = ""
     options.WorkRoot {mustBeTextScalar} = ""
     options.DerivativesRoot {mustBeTextScalar} = ""
     options.Overwrite (1,1) logical = false
-    options.SmoothingFwhm (1,3) {mustBeNumeric, mustBeNonnegative, mustBeReal} = [3 3 3]
     options.ComputeTsnrGains (1,1) logical = true
     options.Verbose (1,1) logical = true
 end
 
 example = physio4all.get_example(exampleID);
+modelID = string(options.Model);
+if strlength(modelID) == 0
+    modelID = example.defaultModel;
+end
+model = physio4all.get_model(example, modelID);
+example = physio4all.configure_model(example, model);
 subjectID = string(options.Subject);
 if strlength(subjectID) == 0
     subjectID = example.defaultSubject;
@@ -43,15 +49,16 @@ runLabel = sprintf("run-%02d", options.Run);
 workFolder = fullfile(workRoot, example.id, subjectID, runLabel, "preproc");
 derivativeRunFolder = fullfile( ...
     derivativesRoot, example.id, subjectID, runLabel);
+preprocessFolder = fullfile(derivativeRunFolder, "preproc");
 physioFolder = fullfile(derivativeRunFolder, "physio");
-smoothingLabel = sprintf("smooth-%gmm", options.SmoothingFwhm(1));
-glmFolder = fullfile(derivativeRunFolder, "glm", ...
-    "model-physio_" + smoothingLabel);
-assessmentFolder = fullfile(derivativeRunFolder, "assessment");
+glmFolder = fullfile(derivativeRunFolder, "glm", model.id);
+assessmentFolder = fullfile(derivativeRunFolder, "assessment", ...
+    model.id);
 
 if options.Verbose
     fprintf("\n=== PhysIO-4-All: %s / %s / %s ===\n", ...
         example.id, subjectID, runLabel);
+    fprintf("Model: %s (%s)\n", model.id, model.name);
     fprintf("BOLD: %s\n", runInfo.boldFile);
     fprintf("Volumes: %d, TR: %.3f s, slices/events: %d/%d\n", ...
         runInfo.nVolumes, runInfo.repetitionTime, ...
@@ -62,9 +69,9 @@ needsPreprocessing = any(ismember(stages, ...
     ["preprocess", "compute_physio", "fit_glm", "assess_physio"]));
 if needsPreprocessing
     preprocessOutputs = physio4all.preprocess( ...
-        runInfo, example, workFolder, ...
+        runInfo, example, workFolder, preprocessFolder, ...
         Overwrite=options.Overwrite, ...
-        SmoothingFwhm=options.SmoothingFwhm);
+        SmoothingFwhm=model.preprocessing.smoothingFwhm);
 end
 
 needsPhysio = any(ismember(stages, ...
@@ -86,10 +93,12 @@ if ismember("assess_physio", stages)
     assessmentOutputs = physio4all.assess_physio( ...
         runInfo, preprocessOutputs, physioOutputs, glmOutputs, ...
         example, assessmentFolder, ...
-        ComputeTsnrGains=options.ComputeTsnrGains);
+        ComputeTsnrGains=options.ComputeTsnrGains, ...
+        Overwrite=options.Overwrite);
 end
 
 results.example = example;
+results.model = model;
 results.runInfo = runInfo;
 results.paths.dataRoot = string(dataRoot);
 results.paths.workRoot = string(workRoot);

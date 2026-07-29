@@ -9,6 +9,7 @@ example.description = [ ...
     "from the BrainHack PhysIO workshop"];
 example.dataRelativePath = fullfile("brainhack_physio", "ds004808");
 example.defaultSubject = "sub-46";
+example.defaultModel = "model-001";
 example.availableRuns = 1:4;
 
 example.files.bold = ...
@@ -27,23 +28,9 @@ example.preprocessing.interpolation = 4;
 
 example.physio.vendor = "Siemens_Tics";
 example.physio.alignScan = "last";
+% This dataset uses 28 physical slices with MB=2. The Siemens scan-timing
+% log and current PhysIO onset detection require the physical slice count,
+% while the SPM GLM uses the 14 unique slice-acquisition events.
+example.physio.sliceCountMode = "physical";
 example.physio.cardiacModality = "PPU";
-example.physio.cardiacOrder = 3;
-example.physio.respiratoryOrder = 4;
-example.physio.interactionOrder = 1;
-example.physio.rvtMethod = "hilbert";
-example.physio.rvtDelays = 0;
-example.physio.hrvDelays = 0;
-example.physio.movementOrder = 6;
-example.physio.movementCensoringMethod = "MAXVAL";
-example.physio.movementCensoringThreshold = [3 Inf];
-
-example.glm.highPassFilter = 128;
-example.glm.serialCorrelations = "AR(1)";
-example.glm.maskThreshold = 0.8;
-
-example.assessment.tsnrReferenceContrast = 0;
-example.assessment.tsnrContrastNames = ...
-    ["Cardiac", "RespiratoryVolumePerTime"];
-
 end

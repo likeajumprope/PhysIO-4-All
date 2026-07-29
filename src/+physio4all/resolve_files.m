@@ -61,8 +61,29 @@ runInfo.multibandFactor = getOptionalField(metadata, ...
     "MultibandAccelerationFactor", 1);
 runInfo.nSliceEvents = numel(unique(metadata.SliceTiming));
 runInfo.onsetSlice = ceil(runInfo.nSliceEvents / 2);
+runInfo.physioNSlices = resolvePhysioSliceCount( ...
+    example.physio, runInfo.nSlices, runInfo.nSliceEvents);
+runInfo.physioOnsetSlice = ceil(runInfo.physioNSlices / 2);
 runInfo.taskName = string(getOptionalField(metadata, "TaskName", "unknown"));
 
+end
+
+function nSlices = resolvePhysioSliceCount( ...
+        physioSettings, nPhysicalSlices, nSliceEvents)
+if isfield(physioSettings, "sliceCountMode")
+    sliceCountMode = string(validatestring( ...
+        physioSettings.sliceCountMode, ...
+        ["physical", "acquisition_events"]));
+else
+    sliceCountMode = "acquisition_events";
+end
+
+switch sliceCountMode
+    case "physical"
+        nSlices = nPhysicalSlices;
+    case "acquisition_events"
+        nSlices = nSliceEvents;
+end
 end
 
 function value = getOptionalField(inputStruct, fieldName, defaultValue)

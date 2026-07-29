@@ -11,13 +11,13 @@ arguments
     exampleID {mustBeTextScalar}
     options.Subject {mustBeTextScalar} = ""
     options.Run (1,1) {mustBeNumeric, mustBeInteger, mustBePositive, mustBeReal} = 1
+    options.Model {mustBeTextScalar} = ""
     options.Stages {mustBeText} = ...
         ["preprocess", "compute_physio", "fit_glm", "assess_physio"]
     options.DataRoot {mustBeTextScalar} = ""
     options.WorkRoot {mustBeTextScalar} = ""
     options.DerivativesRoot {mustBeTextScalar} = ""
     options.Overwrite (1,1) logical = false
-    options.SmoothingFwhm (1,3) {mustBeNumeric, mustBeNonnegative, mustBeReal} = [3 3 3]
     options.ComputeTsnrGains (1,1) logical = true
     options.Verbose (1,1) logical = true
 end

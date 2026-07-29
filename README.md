@@ -72,7 +72,7 @@ remains available as an alias.
 ```matlab
 physio4all_setup
 results = physio4all_run("brainhack23_ds004808", ...
-    Subject="sub-46", Run=1);
+    Subject="sub-46", Run=1, Model="model-001");
 ```
 
 The pipeline keeps downloaded data unchanged:
@@ -100,6 +100,9 @@ PhysIO-4-All/
 │   └── brainhack23_ds004808/
 │       ├── physio4all_example_brainhack23_ds004808.m
 │       └── README.md
+├── models/                         Reusable analysis configurations
+│   ├── physio4all_model_001.m
+│   └── README.md                   Model catalog and pipeline summaries
 ├── src/
 │   └── +physio4all/                Reusable pipeline namespace
 ├── tests/                          MATLAB unit tests
@@ -116,6 +119,16 @@ sharing the preprocessing, PhysIO computation, GLM, and assessment
 implementation across all examples. Downloaded inputs remain unchanged under
 `data/`; SPM can modify copies under `work/`; and outputs intended for review
 or reuse are written under `derivatives/`.
+
+Each dataset example selects a default configuration from the top-level
+`models/` folder, such as `model-001`. The model catalog summarizes each
+pipeline, while its MATLAB configuration records preprocessing,
+PhysIO-regressor, GLM, and assessment parameters. GLM outputs, statistical
+maps, tSNR maps, and their checkpoint files are stored below folders named
+with that model ID.
+Changing analysis parameters therefore means adding a new configuration
+(for example, `model-002`) rather than encoding every parameter in filenames
+or overwriting results from another model.
 
 
 ### Manual Installation

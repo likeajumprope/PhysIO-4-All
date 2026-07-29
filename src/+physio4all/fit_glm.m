@@ -24,7 +24,10 @@ if ~isfile(spmFile)
     specificationBatch = physio4all.build_glm_batch( ...
         runInfo, preprocessOutputs, physioOutputs, example, glmFolder);
     spm_jobman("run", specificationBatch);
+end
 
+residualMeanSquareFile = fullfile(glmFolder, "ResMS.nii");
+if ~isfile(residualMeanSquareFile)
     estimationBatch{1}.spm.stats.fmri_est.spmmat = cellstr(spmFile);
     estimationBatch{1}.spm.stats.fmri_est.write_residuals = false;
     estimationBatch{1}.spm.stats.fmri_est.method.Classical = 1;
@@ -33,5 +36,6 @@ end
 
 outputs.outputFolder = glmFolder;
 outputs.spmFile = string(spmFile);
+outputs.residualMeanSquareFile = string(residualMeanSquareFile);
 
 end

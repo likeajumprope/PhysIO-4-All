@@ -22,13 +22,13 @@ matlabbatch{1}.spm.spatial.realign.estwrite.eoptions.rtm = ...
 matlabbatch{1}.spm.spatial.realign.estwrite.eoptions.interp = ...
     settings.interpolation;
 matlabbatch{1}.spm.spatial.realign.estwrite.eoptions.wrap = [0 0 0];
-matlabbatch{1}.spm.spatial.realign.estwrite.eoptions.weight = "";
+matlabbatch{1}.spm.spatial.realign.estwrite.eoptions.weight = {''};
 matlabbatch{1}.spm.spatial.realign.estwrite.roptions.which = [2 1];
 matlabbatch{1}.spm.spatial.realign.estwrite.roptions.interp = ...
     settings.interpolation;
 matlabbatch{1}.spm.spatial.realign.estwrite.roptions.wrap = [0 0 0];
 matlabbatch{1}.spm.spatial.realign.estwrite.roptions.mask = true;
-matlabbatch{1}.spm.spatial.realign.estwrite.roptions.prefix = "r";
+matlabbatch{1}.spm.spatial.realign.estwrite.roptions.prefix = 'r';
 
 end
 

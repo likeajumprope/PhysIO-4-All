@@ -47,12 +47,16 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
             testCase.verifyEqual(runInfo.repetitionTime, 1.25, AbsTol=1e-12);
             testCase.verifyEqual(runInfo.nSlices, 4);
             testCase.verifyEqual(runInfo.nSliceEvents, 2);
+            testCase.verifyEqual(runInfo.physioNSlices, 4);
+            testCase.verifyEqual(runInfo.physioOnsetSlice, 2);
             testCase.verifyEqual(runInfo.multibandFactor, 2);
         end
 
         function testBatchBuildersReturnExpectedModules(testCase)
             fixture = testCase.createDatasetFixture();
             example = physio4all.get_example("brainhack23_ds004808");
+            model = physio4all.get_model(example, example.defaultModel);
+            example = physio4all.configure_model(example, model);
             runInfo = physio4all.resolve_files( ...
                 example, "sub-46", 1, fixture.DataRoot);
             preprocessing = struct( ...
@@ -71,14 +75,69 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
 
             testCase.verifyTrue(isfield(preprocessingBatch{1}.spm.spatial, ...
                 "realign"));
+            testCase.verifyTrue(iscellstr( ...
+                preprocessingBatch{1}.spm.spatial.realign.estwrite.data{1}));
+            testCase.verifyClass( ...
+                preprocessingBatch{1}.spm.spatial.realign.estwrite. ...
+                roptions.prefix, "char");
+            testCase.verifyEqual( ...
+                preprocessingBatch{1}.spm.spatial.realign.estwrite. ...
+                eoptions.weight, {''});
             testCase.verifyTrue(isfield(physioBatch{1}.spm.tools, "physio"));
             testCase.verifyTrue(isfield(glmBatch{1}.spm.stats, "fmri_spec"));
+            testCase.verifyTrue(iscellstr( ...
+                glmBatch{1}.spm.stats.fmri_spec.sess.scans));
+        end
+
+        function testPreprocessingPromotesAndReusesCheckpoint(testCase)
+            fixture = testCase.createDatasetFixture();
+            example = physio4all.get_example("brainhack23_ds004808");
+            runInfo = physio4all.resolve_files( ...
+                example, "sub-46", 1, fixture.DataRoot);
+            workFolder = fullfile(fixture.Root, "work");
+            derivativeFolder = fullfile(fixture.Root, "derivatives", "preproc");
+            testCase.createCompletedRealignment( ...
+                runInfo, workFolder);
+
+            firstOutputs = physio4all.preprocess( ...
+                runInfo, example, workFolder, derivativeFolder, ...
+                SmoothingFwhm=[0 0 0]);
+            rmdir(workFolder, "s");
+            reusedOutputs = physio4all.preprocess( ...
+                runInfo, example, workFolder, derivativeFolder, ...
+                SmoothingFwhm=[0 0 0]);
+
+            testCase.verifyTrue(isfile(firstOutputs.realignedBoldFile));
+            testCase.verifyTrue(isfile(firstOutputs.motionFile));
+            testCase.verifyTrue(isfile(firstOutputs.meanBoldFile));
+            testCase.verifyTrue(isfile(firstOutputs.checkpointFile));
+            testCase.verifyEqual( ...
+                reusedOutputs.glmBoldFile, firstOutputs.glmBoldFile);
         end
 
         function testInvalidStageIsRejected(testCase)
             testCase.verifyError(@() physio4all_run( ...
                 "brainhack23_ds004808", Stages="invalid"), ...
                 "physio4all:InvalidStage");
+        end
+
+        function testModelConfigurationLoadsByID(testCase)
+            example = physio4all.get_example("brainhack23_ds004808");
+
+            model = physio4all.get_model(example, "model-001");
+
+            testCase.verifyEqual(model.id, "model-001");
+            testCase.verifyEqual( ...
+                model.preprocessing.smoothingFwhm, [3 3 3]);
+            testCase.verifyEqual(model.glm.highPassFilter, 128);
+        end
+
+        function testInvalidModelIDIsRejected(testCase)
+            example = physio4all.get_example("brainhack23_ds004808");
+
+            testCase.verifyError( ...
+                @() physio4all.get_model(example, "smooth-3mm"), ...
+                "physio4all:InvalidModelID");
         end
     end
 
@@ -110,6 +169,25 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
                 "Physio_fixture_sess1_RESP.log"));
             writelines("test", fullfile(physioFolder, ...
                 "Physio_fixture_sess1_Info.log"));
+        end
+
+        function createCompletedRealignment(~, runInfo, workFolder)
+            mkdir(workFolder);
+            [~, boldName, boldExtension] = fileparts(runInfo.boldFile);
+            workingBoldFile = fullfile( ...
+                workFolder, boldName + boldExtension);
+            realignedBoldFile = fullfile( ...
+                workFolder, "r" + boldName + boldExtension);
+            meanBoldFile = fullfile( ...
+                workFolder, "mean" + boldName + boldExtension);
+            workingJsonFile = fullfile(workFolder, boldName + ".json");
+            motionFile = fullfile(workFolder, "rp_" + boldName + ".txt");
+
+            copyfile(runInfo.boldFile, workingBoldFile);
+            copyfile(runInfo.boldFile, realignedBoldFile);
+            copyfile(runInfo.boldFile, meanBoldFile);
+            copyfile(runInfo.boldJsonFile, workingJsonFile);
+            writematrix(zeros(runInfo.nVolumes, 6), motionFile);
         end
     end
 end

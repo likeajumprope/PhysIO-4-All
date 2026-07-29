@@ -7,8 +7,8 @@ end
 
 requiredFields = [ ...
     "id", "name", "dataRelativePath", "defaultSubject", ...
-    "availableRuns", "files", "preprocessing", "physio", "glm", ...
-    "assessment", "repoRoot"];
+    "defaultModel", "availableRuns", "files", "preprocessing", "physio", ...
+    "repoRoot", "configFolder"];
 
 for iField = 1:numel(requiredFields)
     fieldName = requiredFields(iField);
@@ -33,5 +33,6 @@ example.name = string(example.name);
 example.repoRoot = string(example.repoRoot);
 example.dataRelativePath = string(example.dataRelativePath);
 example.defaultSubject = string(example.defaultSubject);
+example.defaultModel = string(example.defaultModel);
 
 end
