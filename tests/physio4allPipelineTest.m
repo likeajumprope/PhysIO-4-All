@@ -139,6 +139,19 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
                 @() physio4all.get_model(example, "smooth-3mm"), ...
                 "physio4all:InvalidModelID");
         end
+
+        function testLogFileIsModelSpecific(testCase)
+            derivativesRunFolder = fullfile( ...
+                "derivatives", "example-001", "sub-01", "run-02");
+
+            logFile = physio4all.get_log_file( ...
+                derivativesRunFolder, "sub-01", 2, "model-003");
+
+            expected = fullfile(derivativesRunFolder, "logs", ...
+                "model-003", ...
+                "sub-01_run-02_model-003_pipeline.log");
+            testCase.verifyEqual(logFile, expected);
+        end
     end
 
     methods (Access = private)

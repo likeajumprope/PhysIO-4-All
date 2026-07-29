@@ -18,6 +18,8 @@ arguments
     options.WorkRoot {mustBeTextScalar} = ""
     options.DerivativesRoot {mustBeTextScalar} = ""
     options.Overwrite (1,1) logical = false
+    options.EnableDiary (1,1) logical = true
+    options.LogFile {mustBeTextScalar} = ""
     options.ComputeTsnrGains (1,1) logical = true
     options.Verbose (1,1) logical = true
 end

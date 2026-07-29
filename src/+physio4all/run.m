@@ -12,6 +12,8 @@ arguments
     options.WorkRoot {mustBeTextScalar} = ""
     options.DerivativesRoot {mustBeTextScalar} = ""
     options.Overwrite (1,1) logical = false
+    options.EnableDiary (1,1) logical = true
+    options.LogFile {mustBeTextScalar} = ""
     options.ComputeTsnrGains (1,1) logical = true
     options.Verbose (1,1) logical = true
 end
@@ -38,6 +40,24 @@ validStages = ["preprocess", "compute_physio", "fit_glm", "assess_physio"];
 if any(~ismember(stages, validStages))
     error("physio4all:InvalidStage", ...
         "Stages must be selected from: %s.", strjoin(validStages, ", "));
+end
+
+logFile = string(options.LogFile);
+if options.EnableDiary
+    if strlength(logFile) == 0
+        logFile = physio4all.get_log_file( ...
+            derivativeRunFolder, subjectID, options.Run, model.id);
+    end
+    logFolder = fileparts(logFile);
+    if ~isfolder(logFolder)
+        mkdir(logFolder);
+    end
+    diary(char(logFile));
+    diaryCleanup = onCleanup(@stopDiary);
+    fprintf("\n=== Pipeline invocation started: %s ===\n", ...
+        char(datetime("now")));
+else
+    logFile = "";
 end
 
 physio4all_setup();
@@ -103,6 +123,7 @@ results.runInfo = runInfo;
 results.paths.dataRoot = string(dataRoot);
 results.paths.workRoot = string(workRoot);
 results.paths.derivativesRoot = string(derivativesRoot);
+results.paths.logFile = logFile;
 if exist("preprocessOutputs", "var")
     results.preprocess = preprocessOutputs;
 end
@@ -115,7 +136,15 @@ end
 if exist("assessmentOutputs", "var")
     results.assessment = assessmentOutputs;
 end
+fprintf("=== Pipeline invocation completed: %s ===\n", ...
+    char(datetime("now")));
 
+end
+
+function stopDiary()
+fprintf("=== Pipeline invocation ended: %s ===\n", ...
+    char(datetime("now")));
+diary("off");
 end
 
 function rootPath = resolveRoot(requestedPath, repoRoot, defaultName)

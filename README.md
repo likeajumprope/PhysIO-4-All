@@ -75,6 +75,22 @@ results = physio4all_run("brainhack23_ds004808", ...
     Subject="sub-46", Run=1, Model="model-001");
 ```
 
+Pipeline output is also appended incrementally to a predictable diary:
+
+```text
+derivatives/<example>/<subject>/<run>/logs/<model>/
+    <subject>_<run>_<model>_pipeline.log
+```
+
+Follow a running pipeline from PowerShell with:
+
+```powershell
+Get-Content .\derivatives\<example>\<subject>\<run>\logs\<model>\*.log -Wait
+```
+
+Set `EnableDiary=false` to disable logging, or pass `LogFile="path/to/log"`
+to choose a different location.
+
 The pipeline keeps downloaded data unchanged:
 
 ```text
