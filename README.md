@@ -4,6 +4,10 @@
 
 Repository demonstrating the application of the PhysIO toolbox to a wide range of public fMRI datasets, with an emphasis on OpenNeuro.
 
+See [From BrainHack Prototype to PhysIO-4-All](DESIGN_EVOLUTION.md) for a short
+account of how the original BrainHack workflow was generalized into this
+repository.
+
 ## Dependencies
 
 This repository depends on upstream copies of:
@@ -110,6 +114,33 @@ Get-Content .\derivatives\<example>\<subject>\<run>\logs\<model>\*.log -Wait
 Set `EnableDiary=false` to disable logging, or pass `LogFile="path/to/log"`
 to choose a different location.
 
+## Pipeline Description (`physio4all_run`)
+
+```text
+resolve example + model
+    -> preprocess BOLD
+    -> compute PhysIO regressors
+    -> fit nuisance GLM
+    -> assess statistical maps and tSNR gains
+```
+
+`physio4all_run` loads the dataset definition from `examples/`, applies the
+selected `model-###` from `models/`, resolves the input files and output roots,
+starts the diary, and coordinates four stages:
+
+| Stage | Main function | Broad purpose | Durable output |
+|---|---|---|---|
+| `preprocess` | `physio4all.preprocess` | Copy the BOLD image into disposable work storage, realign/reslice it, and optionally smooth it. | Realigned/smoothed BOLD images, mean image, motion parameters, and checkpoint. |
+| `compute_physio` | `physio4all.compute_physio` | Read the physiological logs and create the configured PhysIO nuisance regressors. | `physio.mat`, `multiple_regressors.txt`, BIDS physiology files, and PhysIO figures. |
+| `fit_glm` | `physio4all.fit_glm` | Specify and estimate a nuisance-only SPM first-level model using the processed BOLD data and PhysIO regressors. | `SPM.mat`, beta images, residual variance, mask, and contrast images. |
+| `assess_physio` | `physio4all.assess_physio` | Create PhysIO contrasts and export visual statistical-map and tSNR comparisons. | PDF/PNG statistical maps, NIfTI tSNR maps, and assessment checkpoints. |
+
+The default `Stages` value runs all four stages. A request for a later stage
+also resolves its upstream products. With `Overwrite=false`, complete upstream
+outputs are reused; with `Overwrite=true`, the selected stage and its required
+upstream chain are rebuilt. The returned `results` struct records the resolved
+configuration, roots, and outputs from every stage that ran or was reused.
+
 The pipeline keeps downloaded data unchanged:
 
 ```text
@@ -131,22 +162,23 @@ to use, and which pipeline options are appropriate for that dataset.
 
 ```text
 PhysIO-4-All/
-├── examples/                       Dataset-specific configurations and documentation
-│   └── brainhack23_ds004808/
-│       ├── physio4all_example_brainhack23_ds004808.m
-│       └── README.md
-├── models/                         Reusable analysis configurations
-│   ├── physio4all_model_001.m
-│   └── README.md                   Model catalog and pipeline summaries
-├── src/
-│   └── +physio4all/                Reusable pipeline namespace
-├── tests/                          MATLAB unit tests
-├── data/                           Downloaded input datasets (Git-ignored)
-├── work/                           Disposable processing copies/intermediates (Git-ignored)
-├── derivatives/                    Durable PhysIO, GLM, map, and report outputs (Git-ignored)
-├── physio4all_run.m                Public pipeline entry point
-├── physio4all_setup.m              Path and dependency setup
-└── physio4all_download_example_data.m
+|-- examples/                       Dataset-specific configurations and documentation
+|   `-- brainhack23_ds004808/
+|       |-- physio4all_example_brainhack23_ds004808.m
+|       `-- README.md
+|-- models/                         Reusable analysis configurations
+|   |-- physio4all_model_001.m
+|   `-- README.md                   Model catalog and pipeline summaries
+|-- src/
+|   `-- +physio4all/                Reusable pipeline namespace
+|-- tests/                          MATLAB unit tests
+|-- data/                           Downloaded input datasets (Git-ignored)
+|-- work/                           Disposable processing copies/intermediates (Git-ignored)
+|-- derivatives/                    Durable pipeline outputs (Git-ignored)
+|-- DESIGN_EVOLUTION.md             Origin and refactoring rationale
+|-- physio4all_run.m                Public pipeline entry point
+|-- physio4all_setup.m              Path and dependency setup
+`-- physio4all_download_example_data.m
 ```
 
 This separation keeps dataset-specific decisions small and reviewable while
@@ -154,6 +186,49 @@ sharing the preprocessing, PhysIO computation, GLM, and assessment
 implementation across all examples. Downloaded inputs remain unchanged under
 `data/`; SPM can modify copies under `work/`; and outputs intended for review
 or reuse are written under `derivatives/`.
+
+### Derivative output layout
+
+Outputs are organized first by dataset example, then subject and run. The GLM,
+assessment, and diary paths include the model ID so alternative model
+configurations remain distinguishable.
+
+```text
+derivatives/
+`-- <example-id>/
+    `-- <subject-id>/
+        `-- run-<NN>/
+            |-- preproc/
+            |   |-- r<bold>.nii                 Realigned BOLD image
+            |   |-- sr<bold>.nii                Smoothed BOLD image, when enabled
+            |   |-- mean<bold>.nii              Mean realigned image
+            |   |-- rp_<bold>.txt               Motion parameters
+            |   `-- preprocessing_complete.mat  Resume checkpoint
+            |-- physio/
+            |   |-- physio.mat                  Complete PhysIO result structure
+            |   |-- multiple_regressors.txt     Regressors used by the GLM
+            |   |-- *_desc-preproc_physio.*     BIDS physiology export
+            |   `-- physio_*.fig                PhysIO diagnostic figures
+            |-- glm/
+            |   `-- model-<NNN>/
+            |       |-- SPM.mat
+            |       |-- beta_*.nii
+            |       |-- ResMS.nii
+            |       `-- spmF_*.nii / ess_*.nii
+            |-- assessment/
+            |   `-- model-<NNN>/
+            |       |-- statistical_maps/       PDF and PNG overlays
+            |       |-- tsnr_maps/              Raw, model, and ratio NIfTI maps
+            |       `-- *_checkpoint.mat        Assessment resume checkpoints
+            `-- logs/
+                `-- model-<NNN>/
+                    `-- *_pipeline.log           Incremental MATLAB diary
+```
+
+`preproc/` and `physio/` are currently run-level products. Model-specific GLM,
+assessment, and log products live below `model-<NNN>` directories. Use
+`Overwrite=true` when deliberately recomputing run-level products after their
+configuration changes.
 
 Each dataset example selects a default configuration from the top-level
 `models/` folder, such as `model-001`. The model catalog summarizes each
