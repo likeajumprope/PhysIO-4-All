@@ -27,9 +27,9 @@ filePrefix = sprintf("%s_run-%02d_%s", ...
 statMapFolder = fullfile(assessmentFolder, "statistical_maps");
 tsnrFolder = fullfile(assessmentFolder, "tsnr_maps");
 reportCheckpointFile = fullfile(assessmentFolder, ...
-    filePrefix + "_desc-statisticalMaps_checkpoint.mat");
+    filePrefix + "_desc-statisticalMaps_checkpoint.json");
 tsnrCheckpointFile = fullfile(assessmentFolder, ...
-    filePrefix + "_desc-tsnr_checkpoint.mat");
+    filePrefix + "_desc-tsnr_checkpoint.json");
 
 if isfile(preprocessOutputs.meanBoldFile)
     structuralFile = preprocessOutputs.meanBoldFile;
@@ -43,11 +43,13 @@ if ~isfile(reportCheckpointFile)
         example.assessment.tsnrContrastNames, statMapFolder, filePrefix);
     checkpoint.completedAt = datetime("now");
     checkpoint.modelLabel = string(modelLabel);
+    checkpoint.stage = "statistical_maps";
     checkpoint.files = reportFiles;
-    save(reportCheckpointFile, "checkpoint");
+    spm_jsonwrite(char(reportCheckpointFile), checkpoint, ...
+        struct('indent', '  '));
 else
-    savedCheckpoint = load(reportCheckpointFile, "checkpoint");
-    reportFiles = savedCheckpoint.checkpoint.files;
+    checkpoint = spm_jsonread(char(reportCheckpointFile));
+    reportFiles = string(checkpoint.files);
 end
 
 if options.ComputeTsnrGains && ~isfile(tsnrCheckpointFile)
@@ -77,14 +79,16 @@ if options.ComputeTsnrGains && ~isfile(tsnrCheckpointFile)
         example.assessment.tsnrContrastNames, tsnrFolder, filePrefix);
     checkpoint.completedAt = datetime("now");
     checkpoint.modelLabel = string(modelLabel);
+    checkpoint.stage = "tsnr";
     checkpoint.referenceContrast = ...
         example.assessment.tsnrReferenceContrast;
     checkpoint.contrastNames = example.assessment.tsnrContrastNames;
     checkpoint.files = tsnrFiles;
-    save(tsnrCheckpointFile, "checkpoint");
+    spm_jsonwrite(char(tsnrCheckpointFile), checkpoint, ...
+        struct('indent', '  '));
 elseif isfile(tsnrCheckpointFile)
-    savedCheckpoint = load(tsnrCheckpointFile, "checkpoint");
-    tsnrFiles = savedCheckpoint.checkpoint.files;
+    checkpoint = spm_jsonread(char(tsnrCheckpointFile));
+    tsnrFiles = string(checkpoint.files);
 else
     tsnrFiles = strings(0, 1);
 end

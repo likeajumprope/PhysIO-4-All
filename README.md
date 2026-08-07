@@ -141,6 +141,17 @@ outputs are reused; with `Overwrite=true`, the selected stage and its required
 upstream chain are rebuilt. The returned `results` struct records the resolved
 configuration, roots, and outputs from every stage that ran or was reused.
 
+Checkpoints act as completion markers along this sequence: they are written
+only after the output set they describe has been produced successfully. On a
+later invocation with `Overwrite=false`, the pipeline uses these markers
+together with the required stage outputs to reuse completed work and continue
+with the next requested step. A missing checkpoint or required output prevents
+a partially completed step from being treated as resumable. These readable
+JSON markers live beside the durable stage outputs below
+`derivatives/<example>/<subject>/run-<NN>/` and use the
+`*_checkpoint.json` filename pattern. Checkpoints for model-specific outputs
+are nested one level further below `model-<NNN>`.
+
 The pipeline keeps downloaded data unchanged:
 
 ```text
@@ -203,7 +214,7 @@ derivatives/
             |   |-- sr<bold>.nii                Smoothed BOLD image, when enabled
             |   |-- mean<bold>.nii              Mean realigned image
             |   |-- rp_<bold>.txt               Motion parameters
-            |   `-- preprocessing_complete.mat  Resume checkpoint
+            |   `-- preprocessing_checkpoint.json Human-readable resume checkpoint
             |-- physio/
             |   |-- physio.mat                  Complete PhysIO result structure
             |   |-- multiple_regressors.txt     Regressors used by the GLM
@@ -219,7 +230,7 @@ derivatives/
             |   `-- model-<NNN>/
             |       |-- statistical_maps/       PDF and PNG overlays
             |       |-- tsnr_maps/              Raw, model, and ratio NIfTI maps
-            |       `-- *_checkpoint.mat        Assessment resume checkpoints
+            |       `-- *_checkpoint.json       Human-readable resume checkpoints
             `-- logs/
                 `-- model-<NNN>/
                     `-- *_pipeline.log           Incremental MATLAB diary

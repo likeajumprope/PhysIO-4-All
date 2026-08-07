@@ -120,11 +120,19 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
             reusedOutputs = physio4all.preprocess( ...
                 runInfo, example, workFolder, derivativeFolder, ...
                 SmoothingFwhm=[0 0 0]);
+            checkpoint = jsondecode(fileread(firstOutputs.checkpointFile));
+            [~, checkpointName, checkpointExtension] = ...
+                fileparts(firstOutputs.checkpointFile);
 
             testCase.verifyTrue(isfile(firstOutputs.realignedBoldFile));
             testCase.verifyTrue(isfile(firstOutputs.motionFile));
             testCase.verifyTrue(isfile(firstOutputs.meanBoldFile));
             testCase.verifyTrue(isfile(firstOutputs.checkpointFile));
+            testCase.verifyEqual(checkpointName, "preprocessing_checkpoint");
+            testCase.verifyEqual(checkpointExtension, ".json");
+            testCase.verifyEqual(string(checkpoint.stage), "preprocess");
+            testCase.verifyEqual(checkpoint.smoothingFwhm(:)', [0 0 0]);
+            testCase.verifyEqual(checkpoint.runInfo.nVolumes, 3);
             testCase.verifyEqual( ...
                 reusedOutputs.glmBoldFile, firstOutputs.glmBoldFile);
         end

@@ -79,7 +79,9 @@ outputs.glmBoldFile = derivativeOutputs.glmBoldFile;
 checkpoint.runInfo = runInfo;
 checkpoint.smoothingFwhm = options.SmoothingFwhm;
 checkpoint.completedAt = datetime("now");
-save(derivativeOutputs.checkpointFile, "checkpoint");
+checkpoint.stage = "preprocess";
+spm_jsonwrite(char(derivativeOutputs.checkpointFile), checkpoint, ...
+    struct('indent', '  '));
 
 end
 
@@ -108,7 +110,7 @@ outputs.meanBoldFile = fullfile( ...
 outputs.boldJsonFile = fullfile( ...
     derivativeFolder, boldName + ".json");
 outputs.checkpointFile = fullfile( ...
-    derivativeFolder, "preprocessing_complete.mat");
+    derivativeFolder, "preprocessing_checkpoint.json");
 if any(smoothingFwhm > 0)
     outputs.glmBoldFile = outputs.smoothedBoldFile;
 else
