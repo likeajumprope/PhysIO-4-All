@@ -1,8 +1,8 @@
 function results = physio4all_run(exampleID, options)
 %PHYSIO4ALL_RUN Run a PhysIO-4-All example pipeline.
 %
-%   results = physio4all_run("brainhack23_ds004808")
-%   results = physio4all_run("brainhack23_ds004808", ...
+%   results = physio4all_run("brainhack23")
+%   results = physio4all_run("fastfmri", ...
 %       Subject="sub-46", Run=1)
 %
 % See also physio4all.run, physio4all_download_example_data

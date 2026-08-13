@@ -8,8 +8,8 @@ recordings. The downloader defaults to `sub-01`; subjects `sub-01` through
 
 ```matlab
 physio4all_setup
-physio4all_download_example_data("openneuro_ds004645")
-results = physio4all_run("openneuro_ds004645", Subject="sub-01", Run=1)
+physio4all_download_example_data("fastfmri")
+results = physio4all_run("fastfmri", Subject="sub-01", Run=1)
 ```
 
 The downloaded NIfTI images are decompressed for SPM. BIDS physiology remains

@@ -8,7 +8,7 @@ Run the default subject and first run with:
 
 ```matlab
 physio4all_setup
-physio4all_run("brainhack23_ds004808", Subject="sub-46", Run=1)
+physio4all_run("brainhack23", Subject="sub-46", Run=1)
 ```
 
 ## Tested subject/run combinations
@@ -26,8 +26,8 @@ statistical-map export, and tSNR assessment:
 For example:
 
 ```matlab
-physio4all_download_example_data("brainhack23_ds004808", 44)
-physio4all_run("brainhack23_ds004808", ...
+physio4all_download_example_data("brainhack23", 44)
+physio4all_run("brainhack23", ...
     Subject="sub-44", Run=1, Model="model-001")
 ```
 

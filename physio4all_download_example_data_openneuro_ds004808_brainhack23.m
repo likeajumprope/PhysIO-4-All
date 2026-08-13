@@ -1,6 +1,6 @@
-function physio4all_download_example_data_brainhack23_ds004808( ...
+function physio4all_download_example_data_openneuro_ds004808_brainhack23( ...
         destRoot, subjectIDs, doOverwrite)
-%PHYSIO4ALL_DOWNLOAD_EXAMPLE_DATA_BRAINHACK_PHYSIO_DS004808
+%PHYSIO4ALL_DOWNLOAD_EXAMPLE_DATA_OPENNEURO_DS004808_BRAINHACK23
 % Download the first PhysIO-4-All example dataset.
 %
 % This downloads a small, reproducible subset of OpenNeuro ds004808 for
@@ -22,7 +22,7 @@ function physio4all_download_example_data_brainhack23_ds004808( ...
 
 if nargin < 1 || isempty(destRoot)
     repoRoot = fileparts(mfilename('fullpath'));
-    destRoot = fullfile(repoRoot, 'data', 'brainhack_physio', 'ds004808');
+    destRoot = fullfile(repoRoot, 'data', 'openneuro', 'ds004808');
 end
 
 if nargin < 2 || isempty(subjectIDs)

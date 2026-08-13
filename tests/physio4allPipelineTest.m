@@ -33,7 +33,7 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
 
         function testResolveFilesReadsMetadata(testCase)
             fixture = testCase.createDatasetFixture();
-            example = physio4all.get_example("brainhack23_ds004808");
+            example = physio4all.get_example("brainhack23");
             example.physio = rmfield(example.physio, "nSlices");
 
             runInfo = physio4all.resolve_files( ...
@@ -51,7 +51,7 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
 
         function testBrainhackExampleUsesPhysioSliceWorkaround(testCase)
             fixture = testCase.createDatasetFixture();
-            example = physio4all.get_example("brainhack23_ds004808");
+            example = physio4all.get_example("brainhack23");
 
             runInfo = physio4all.resolve_files( ...
                 example, "sub-46", 1, fixture.DataRoot);
@@ -62,8 +62,13 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
         end
 
         function testOpenNeuroDs004645ExampleConfiguration(testCase)
-            example = physio4all.get_example("openneuro_ds004645");
+            example = physio4all.get_example("fastfmri");
 
+            testCase.verifyEqual(example.id, ...
+                "openneuro_ds004645_fastfmri");
+            testCase.verifyEqual(example.source, "OpenNeuro");
+            testCase.verifyEqual(example.accession, "ds004645");
+            testCase.verifyEqual(example.aliases, "fastfmri");
             testCase.verifyEqual(example.defaultSubject, "sub-01");
             testCase.verifyEqual(example.availableRuns, 1:2);
             testCase.verifyEqual(example.dataRelativePath, ...
@@ -73,9 +78,18 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
             testCase.verifyEqual(example.physio.multibandFactor, 3);
         end
 
+        function testDatasetMnemonicsResolveToCanonicalIDs(testCase)
+            testCase.verifyEqual( ...
+                physio4all_resolve_example_id("fastfmri"), ...
+                "openneuro_ds004645_fastfmri");
+            testCase.verifyEqual( ...
+                physio4all_resolve_example_id("brainhack23"), ...
+                "openneuro_ds004808_brainhack23");
+        end
+
         function testBatchBuildersReturnExpectedModules(testCase)
             fixture = testCase.createDatasetFixture();
-            example = physio4all.get_example("brainhack23_ds004808");
+            example = physio4all.get_example("brainhack23");
             model = physio4all.get_model(example, example.defaultModel);
             example = physio4all.configure_model(example, model);
             runInfo = physio4all.resolve_files( ...
@@ -120,7 +134,7 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
 
         function testPreprocessingPromotesAndReusesCheckpoint(testCase)
             fixture = testCase.createDatasetFixture();
-            example = physio4all.get_example("brainhack23_ds004808");
+            example = physio4all.get_example("brainhack23");
             runInfo = physio4all.resolve_files( ...
                 example, "sub-46", 1, fixture.DataRoot);
             workFolder = fullfile(fixture.Root, "work");
@@ -154,12 +168,12 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
 
         function testInvalidStageIsRejected(testCase)
             testCase.verifyError(@() physio4all_run( ...
-                "brainhack23_ds004808", Stages="invalid"), ...
+                "brainhack23", Stages="invalid"), ...
                 "physio4all:InvalidStage");
         end
 
         function testModelConfigurationLoadsByID(testCase)
-            example = physio4all.get_example("brainhack23_ds004808");
+            example = physio4all.get_example("brainhack23");
 
             model = physio4all.get_model(example, "model-001");
 
@@ -170,7 +184,7 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
         end
 
         function testInvalidModelIDIsRejected(testCase)
-            example = physio4all.get_example("brainhack23_ds004808");
+            example = physio4all.get_example("brainhack23");
 
             testCase.verifyError( ...
                 @() physio4all.get_model(example, "smooth-3mm"), ...
@@ -196,7 +210,7 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
             testCase.addTeardown(@() rmdir(fixtureRoot, "s"));
 
             testCase.verifyError(@() physio4all_run( ...
-                "brainhack23_ds004808", ...
+                "brainhack23", ...
                 DataRoot=fullfile(fixtureRoot, "missing-data"), ...
                 DerivativesRoot=fullfile(fixtureRoot, "derivatives"), ...
                 EnableDiary=true, Verbose=false), ...
@@ -209,7 +223,7 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
             fixture.Root = string(tempname);
             fixture.DataRoot = fullfile(fixture.Root, "data");
             subjectRoot = fullfile(fixture.DataRoot, ...
-                "brainhack_physio", "ds004808", "sub-46");
+                "openneuro", "ds004808", "sub-46");
             funcFolder = fullfile(subjectRoot, "func");
             physioFolder = fullfile(subjectRoot, "physio");
             mkdir(funcFolder);

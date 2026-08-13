@@ -6,7 +6,8 @@ arguments
 end
 
 requiredFields = [ ...
-    "id", "name", "dataRelativePath", "defaultSubject", ...
+    "id", "name", "source", "accession", "snapshot", "shortName", ...
+    "authors", "purpose", "aliases", "dataRelativePath", "defaultSubject", ...
     "defaultModel", "availableRuns", "files", "preprocessing", "physio", ...
     "repoRoot", "configFolder"];
 
@@ -30,6 +31,13 @@ end
 
 example.id = string(example.id);
 example.name = string(example.name);
+example.source = string(example.source);
+example.accession = string(example.accession);
+example.snapshot = string(example.snapshot);
+example.shortName = string(example.shortName);
+example.authors = string(example.authors);
+example.purpose = string(example.purpose);
+example.aliases = string(example.aliases);
 example.repoRoot = string(example.repoRoot);
 example.dataRelativePath = string(example.dataRelativePath);
 example.defaultSubject = string(example.defaultSubject);

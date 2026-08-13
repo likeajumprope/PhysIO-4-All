@@ -1,11 +1,18 @@
-function example = physio4all_example_openneuro_ds004645()
-%PHYSIO4ALL_EXAMPLE_OPENNEURO_DS004645 Configure the ds004645 example.
+function example = physio4all_example_openneuro_ds004645_fastfmri()
+%PHYSIO4ALL_EXAMPLE_OPENNEURO_DS004645_FASTFMRI Configure fast fMRI.
 
-example.id = "openneuro_ds004645";
+example.id = "openneuro_ds004645_fastfmri";
 example.name = "OpenNeuro ds004645 resting-state fMRI example";
 example.description = [ ...
     "OpenNeuro ds004645 7T resting-state fMRI with pulse oximetry " ...
     "and respiratory-belt recordings in BIDS format"];
+example.source = "OpenNeuro";
+example.accession = "ds004645";
+example.snapshot = "1.0.0";
+example.shortName = "Fast fMRI";
+example.authors = "Lewis et al.";
+example.purpose = "7T fast resting-state fMRI with BIDS physiology";
+example.aliases = "fastfmri";
 example.dataRelativePath = fullfile("openneuro", "ds004645");
 example.defaultSubject = "sub-01";
 example.defaultModel = "model-001";

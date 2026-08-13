@@ -1,6 +1,6 @@
-function physio4all_download_example_data_openneuro_ds004645( ...
+function physio4all_download_example_data_openneuro_ds004645_fastfmri( ...
         destRoot, subjectIDs, doOverwrite)
-%PHYSIO4ALL_DOWNLOAD_EXAMPLE_DATA_OPENNEURO_DS004645 Download ds004645.
+%PHYSIO4ALL_DOWNLOAD_EXAMPLE_DATA_OPENNEURO_DS004645_FASTFMRI Download data.
 %
 % Downloads the T1w image plus both resting-state BOLD and BIDS physiology
 % runs for selected subjects from the pinned OpenNeuro 1.0.0 snapshot.
