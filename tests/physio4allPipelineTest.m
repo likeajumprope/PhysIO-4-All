@@ -26,6 +26,9 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
             testCase.verifyFalse(any(pathEntries == namespaceFolder));
             testCase.verifyEqual(which("physio4all.run"), ...
                 char(fullfile(namespaceFolder, "run.m")));
+            testCase.verifyEqual(which("tapas_physio_new"), ...
+                char(fullfile(testCase.RepoRoot, "external", "PhysIO", ...
+                "tapas_physio_new.m")));
         end
 
         function testResolveFilesReadsMetadata(testCase)
@@ -56,6 +59,18 @@ classdef physio4allPipelineTest < matlab.unittest.TestCase
             testCase.verifyEqual(example.physio.nSlices, 28);
             testCase.verifyEqual(runInfo.physioNSlices, 28);
             testCase.verifyEqual(runInfo.physioOnsetSlice, 14);
+        end
+
+        function testOpenNeuroDs004645ExampleConfiguration(testCase)
+            example = physio4all.get_example("openneuro_ds004645");
+
+            testCase.verifyEqual(example.defaultSubject, "sub-01");
+            testCase.verifyEqual(example.availableRuns, 1:2);
+            testCase.verifyEqual(example.dataRelativePath, ...
+                string(fullfile("openneuro", "ds004645")));
+            testCase.verifyEqual(example.files.physioFolder, "func");
+            testCase.verifyEqual(example.physio.vendor, "BIDS");
+            testCase.verifyEqual(example.physio.multibandFactor, 3);
         end
 
         function testBatchBuildersReturnExpectedModules(testCase)

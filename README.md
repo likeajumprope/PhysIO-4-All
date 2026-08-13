@@ -67,12 +67,31 @@ physio4all_download_example_data("brainhack23_ds004808", [44 46])
 
 If a requested subject has no upstream OSF physio logs, the downloader warns and still downloads the imaging files from OpenNeuro.
 
+The second example downloads 7T resting-state fMRI and BIDS physiology from
+the pinned OpenNeuro `ds004645` version 1.0.0 snapshot:
+
+```matlab
+physio4all_download_example_data("openneuro_ds004645")
+physio4all_download_example_data("openneuro_ds004645", [1 2])
+```
+
+This defaults to `sub-01`, accepts subject numbers 1 through 15, and stores
+the subset under `data/openneuro/ds004645`. NIfTI images are decompressed for
+SPM; the BIDS physiology files remain compressed.
+
 ## Run an Example
 
 ```matlab
 physio4all_setup
 results = physio4all_run("brainhack23_ds004808", ...
     Subject="sub-46", Run=1, Model="model-001");
+```
+
+For the ds004645 resting-state example:
+
+```matlab
+results = physio4all_run("openneuro_ds004645", ...
+    Subject="sub-01", Run=1, Model="model-001");
 ```
 
 For a fresh run that keeps disposable preprocessing files on a local scratch
@@ -174,8 +193,11 @@ to use, and which pipeline options are appropriate for that dataset.
 ```text
 PhysIO-4-All/
 |-- examples/                       Dataset-specific configurations and documentation
-|   `-- brainhack23_ds004808/
-|       |-- physio4all_example_brainhack23_ds004808.m
+|   |-- brainhack23_ds004808/
+|   |   |-- physio4all_example_brainhack23_ds004808.m
+|   |   `-- README.md
+|   `-- openneuro_ds004645/
+|       |-- physio4all_example_openneuro_ds004645.m
 |       `-- README.md
 |-- models/                         Reusable analysis configurations
 |   |-- physio4all_model_001.m

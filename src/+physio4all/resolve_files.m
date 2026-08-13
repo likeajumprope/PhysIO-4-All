@@ -19,7 +19,9 @@ end
 datasetRoot = fullfile(dataRoot, example.dataRelativePath);
 subjectRoot = fullfile(datasetRoot, subjectID);
 funcFolder = fullfile(subjectRoot, "func");
-physioFolder = fullfile(subjectRoot, "physio");
+physioRelativeFolder = getOptionalField(example.files, ...
+    "physioFolder", "physio");
+physioFolder = fullfile(subjectRoot, physioRelativeFolder);
 
 boldBaseName = sprintf(example.files.bold, subjectID, runNumber);
 boldJsonBaseName = sprintf(example.files.boldJson, subjectID, runNumber);
@@ -57,8 +59,10 @@ runInfo.scanTimingFile = string(scanTimingFile);
 runInfo.nVolumes = niftiMetadata.ImageSize(4);
 runInfo.repetitionTime = metadata.RepetitionTime;
 runInfo.nSlices = numel(metadata.SliceTiming);
-runInfo.multibandFactor = getOptionalField(metadata, ...
+metadataMultibandFactor = getOptionalField(metadata, ...
     "MultibandAccelerationFactor", 1);
+runInfo.multibandFactor = getOptionalField(example.physio, ...
+    "multibandFactor", metadataMultibandFactor);
 runInfo.nSliceEvents = runInfo.nSlices / runInfo.multibandFactor;
 if fix(runInfo.nSliceEvents) ~= runInfo.nSliceEvents
     error("physio4all:InvalidMultibandFactor", ...

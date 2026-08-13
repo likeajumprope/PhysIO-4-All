@@ -7,6 +7,7 @@ function physio4all_download_example_data(exampleIDs, subjectIDs, dataRoot, doOv
 %   physio4all_download_example_data("brainhack23_ds004808")
 %   physio4all_download_example_data("brainhack23_ds004808", 44)
 %   physio4all_download_example_data("brainhack23_ds004808", [44 46])
+%   physio4all_download_example_data("openneuro_ds004645", 1)
 %
 % Inputs:
 %   exampleIDs  Dataset ID(s) to download, or "info"
@@ -68,6 +69,10 @@ for iExample = 1:numel(exampleIDs)
             destRoot = fullfile(dataRoot, 'brainhack_physio', 'ds004808');
             physio4all_download_example_data_brainhack23_ds004808( ...
                 destRoot, subjectIDs, doOverwrite);
+        case "openneuro_ds004645"
+            destRoot = fullfile(dataRoot, 'openneuro', 'ds004645');
+            physio4all_download_example_data_openneuro_ds004645( ...
+                destRoot, subjectIDs, doOverwrite);
     end
 
     fprintf('\n');
@@ -78,10 +83,11 @@ fprintf('=== Done ===\n\n');
 end
 
 function registry = availableDatasets()
-registry.ids = "brainhack23_ds004808";
+registry.ids = ["brainhack23_ds004808", "openneuro_ds004645"];
 
-registry.description = ...
-    "BrainHack 2023 example based on OpenNeuro ds004808 plus OSF physio logs";
+registry.description = [ ...
+    "BrainHack 2023 example based on OpenNeuro ds004808 plus OSF physio logs", ...
+    "OpenNeuro ds004645 7T resting-state fMRI with BIDS physiology"];
 end
 
 function printAvailableDatasets(registry)

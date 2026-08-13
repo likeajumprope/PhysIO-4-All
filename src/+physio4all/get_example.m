@@ -15,6 +15,12 @@ switch exampleID
         restorePath = onCleanup(@() path(originalPath));
         addpath(configFolder);
         example = physio4all_example_brainhack23_ds004808();
+    case "openneuro_ds004645"
+        configFolder = fullfile(repoRoot, "examples", "openneuro_ds004645");
+        originalPath = path;
+        restorePath = onCleanup(@() path(originalPath));
+        addpath(configFolder);
+        example = physio4all_example_openneuro_ds004645();
     otherwise
         error("physio4all:UnknownExample", ...
             "Unknown example '%s'.", exampleID);
