@@ -1,6 +1,6 @@
-function physio4all_download_example_data_brainhack23_ds004808( ...
+function physio4all_download_example_data_openneuro_ds004808_brainhack23( ...
         destRoot, subjectIDs, doOverwrite)
-%PHYSIO4ALL_DOWNLOAD_EXAMPLE_DATA_BRAINHACK_PHYSIO_DS004808
+%PHYSIO4ALL_DOWNLOAD_EXAMPLE_DATA_OPENNEURO_DS004808_BRAINHACK23
 % Download the first PhysIO-4-All example dataset.
 %
 % This downloads a small, reproducible subset of OpenNeuro ds004808 for
@@ -22,7 +22,7 @@ function physio4all_download_example_data_brainhack23_ds004808( ...
 
 if nargin < 1 || isempty(destRoot)
     repoRoot = fileparts(mfilename('fullpath'));
-    destRoot = fullfile(repoRoot, 'data', 'brainhack_physio', 'ds004808');
+    destRoot = fullfile(repoRoot, 'data', 'openneuro', 'ds004808');
 end
 
 if nargin < 2 || isempty(subjectIDs)
@@ -51,7 +51,8 @@ fprintf('  OpenNeuro subset: ds004808 snapshot 1.0.0\n');
 fprintf('  OSF physio logs: project td5kp\n');
 fprintf('  Subjects: %s\n\n', strjoin(cellstr(subjectLabels), ', '));
 
-downloadManifest(destRoot, openNeuroFiles);
+physio4all_download_openneuro_subset( ...
+    'ds004808', '1.0.0', destRoot, openNeuroFiles, false);
 downloadManifest(destRoot, osfFiles);
 
 fprintf('\n  Saved BrainHack example data under:\n    %s\n', destRoot);
@@ -71,39 +72,38 @@ end
 end
 
 function manifest = getOpenNeuroManifest(subjectIDs)
-rootBase = 'https://s3.amazonaws.com/openneuro.org/ds004808/';
 manifest = {
-    '.bidsignore', [rootBase '.bidsignore']
-    'CHANGES', [rootBase 'CHANGES']
-    'README', [rootBase 'README']
-    'dataset_description.json', [rootBase 'dataset_description.json']
-    'participants.tsv', [rootBase 'participants.tsv']
+    '.bidsignore'
+    'CHANGES'
+    'README'
+    'dataset_description.json'
+    'participants.tsv'
     };
 
 for iSubject = 1:numel(subjectIDs)
     subLabel = sprintf('sub-%02d', subjectIDs(iSubject));
-    manifest = [manifest; getOpenNeuroSubjectManifest(rootBase, subLabel)]; %#ok<AGROW>
+    manifest = [manifest; getOpenNeuroSubjectManifest(subLabel)]; %#ok<AGROW>
 end
 end
 
-function manifest = getOpenNeuroSubjectManifest(rootBase, subLabel)
+function manifest = getOpenNeuroSubjectManifest(subLabel)
 manifest = {
-    sprintf('%s/anat/%s_TSE-LCarea.json', subLabel, subLabel), [rootBase sprintf('%s/anat/%s_TSE-LCarea.json', subLabel, subLabel)]
-    sprintf('%s/anat/%s_TSE-LCarea.nii', subLabel, subLabel), [rootBase sprintf('%s/anat/%s_TSE-LCarea.nii', subLabel, subLabel)]
-    sprintf('%s/anat/%s_TSE-VTAarea.json', subLabel, subLabel), [rootBase sprintf('%s/anat/%s_TSE-VTAarea.json', subLabel, subLabel)]
-    sprintf('%s/anat/%s_TSE-VTAarea.nii', subLabel, subLabel), [rootBase sprintf('%s/anat/%s_TSE-VTAarea.nii', subLabel, subLabel)]
-    sprintf('%s/anat/%s_run-01_T1w.json', subLabel, subLabel), [rootBase sprintf('%s/anat/%s_run-01_T1w.json', subLabel, subLabel)]
-    sprintf('%s/anat/%s_run-01_T1w.nii', subLabel, subLabel), [rootBase sprintf('%s/anat/%s_run-01_T1w.nii', subLabel, subLabel)]
+    sprintf('%s/anat/%s_TSE-LCarea.json', subLabel, subLabel)
+    sprintf('%s/anat/%s_TSE-LCarea.nii', subLabel, subLabel)
+    sprintf('%s/anat/%s_TSE-VTAarea.json', subLabel, subLabel)
+    sprintf('%s/anat/%s_TSE-VTAarea.nii', subLabel, subLabel)
+    sprintf('%s/anat/%s_run-01_T1w.json', subLabel, subLabel)
+    sprintf('%s/anat/%s_run-01_T1w.nii', subLabel, subLabel)
     };
 
 for iRun = 1:4
     manifest = [manifest; {
-        sprintf('%s/func/%s_task-NAconf_ep2d-AP.json', subLabel, subLabel), [rootBase sprintf('%s/func/%s_task-NAconf_ep2d-AP.json', subLabel, subLabel)]
-        sprintf('%s/func/%s_task-NAconf_ep2d-AP.nii', subLabel, subLabel), [rootBase sprintf('%s/func/%s_task-NAconf_ep2d-AP.nii', subLabel, subLabel)]
-        sprintf('%s/func/%s_task-NAconf_ep2d-PA.json', subLabel, subLabel), [rootBase sprintf('%s/func/%s_task-NAconf_ep2d-PA.json', subLabel, subLabel)]
-        sprintf('%s/func/%s_task-NAconf_ep2d-PA.nii', subLabel, subLabel), [rootBase sprintf('%s/func/%s_task-NAconf_ep2d-PA.nii', subLabel, subLabel)]
-        sprintf('%s/func/%s_task-NAconf_run-%02d_bold.json', subLabel, subLabel, iRun), [rootBase sprintf('%s/func/%s_task-NAconf_run-%02d_bold.json', subLabel, subLabel, iRun)]
-        sprintf('%s/func/%s_task-NAconf_run-%02d_bold.nii', subLabel, subLabel, iRun), [rootBase sprintf('%s/func/%s_task-NAconf_run-%02d_bold.nii', subLabel, subLabel, iRun)]
+        sprintf('%s/func/%s_task-NAconf_ep2d-AP.json', subLabel, subLabel)
+        sprintf('%s/func/%s_task-NAconf_ep2d-AP.nii', subLabel, subLabel)
+        sprintf('%s/func/%s_task-NAconf_ep2d-PA.json', subLabel, subLabel)
+        sprintf('%s/func/%s_task-NAconf_ep2d-PA.nii', subLabel, subLabel)
+        sprintf('%s/func/%s_task-NAconf_run-%02d_bold.json', subLabel, subLabel, iRun)
+        sprintf('%s/func/%s_task-NAconf_run-%02d_bold.nii', subLabel, subLabel, iRun)
         }]; %#ok<AGROW>
 end
 end

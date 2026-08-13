@@ -5,19 +5,24 @@ arguments
     exampleID {mustBeTextScalar}
 end
 
-exampleID = lower(string(exampleID));
+exampleID = physio4all_resolve_example_id(exampleID);
 repoRoot = fileparts(fileparts(fileparts(mfilename('fullpath'))));
 
 switch exampleID
-    case "brainhack23_ds004808"
-        configFolder = fullfile(repoRoot, "examples", "brainhack23_ds004808");
+    case "openneuro_ds004808_brainhack23"
+        configFolder = fullfile(repoRoot, "examples", ...
+            "openneuro_ds004808_brainhack23");
         originalPath = path;
         restorePath = onCleanup(@() path(originalPath));
         addpath(configFolder);
-        example = physio4all_example_brainhack23_ds004808();
-    otherwise
-        error("physio4all:UnknownExample", ...
-            "Unknown example '%s'.", exampleID);
+        example = physio4all_example_openneuro_ds004808_brainhack23();
+    case "openneuro_ds004645_fastfmri"
+        configFolder = fullfile(repoRoot, "examples", ...
+            "openneuro_ds004645_fastfmri");
+        originalPath = path;
+        restorePath = onCleanup(@() path(originalPath));
+        addpath(configFolder);
+        example = physio4all_example_openneuro_ds004645_fastfmri();
 end
 
 example.repoRoot = string(repoRoot);

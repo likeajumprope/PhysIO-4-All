@@ -50,29 +50,60 @@ This does
 
 ## Example Data
 
+Example datasets use a stable canonical ID of the form
+`<source>_<accession>_<mnemonic>`. Public callers also accept the shorter
+mnemonic. The currently registered examples are:
+
+| Mnemonic | Canonical ID | Data location |
+|---|---|---|
+| `brainhack23` | `openneuro_ds004808_brainhack23` | `data/openneuro/ds004808` |
+| `fastfmri` | `openneuro_ds004645_fastfmri` | `data/openneuro/ds004645` |
+
+Run `physio4all_download_example_data("info")` to list registry metadata.
+
 To download the first example dataset used in `mrikasper/brainhack-physio`, run:
 
 ```matlab
-physio4all_download_example_data("brainhack23_ds004808")
+physio4all_download_example_data("brainhack23")
 ```
 
-This defaults to `sub-46` and creates a reproducible subset under `data/brainhack_physio/ds004808`.
+This defaults to `sub-46` and creates a reproducible subset under
+`data/openneuro/ds004808`.
 
 To request specific subjects, pass a numeric subject ID or vector as the second input:
 
 ```matlab
-physio4all_download_example_data("brainhack23_ds004808", 44)
-physio4all_download_example_data("brainhack23_ds004808", [44 46])
+physio4all_download_example_data("brainhack23", 44)
+physio4all_download_example_data("brainhack23", [44 46])
 ```
 
 If a requested subject has no upstream OSF physio logs, the downloader warns and still downloads the imaging files from OpenNeuro.
+
+The second example downloads 7T resting-state fMRI and BIDS physiology from
+the pinned OpenNeuro `ds004645` version 1.0.0 snapshot:
+
+```matlab
+physio4all_download_example_data("fastfmri")
+physio4all_download_example_data("fastfmri", [1 2])
+```
+
+This defaults to `sub-01`, accepts subject numbers 1 through 15, and stores
+the subset under `data/openneuro/ds004645`. NIfTI images are decompressed for
+SPM; the BIDS physiology files remain compressed.
 
 ## Run an Example
 
 ```matlab
 physio4all_setup
-results = physio4all_run("brainhack23_ds004808", ...
+results = physio4all_run("brainhack23", ...
     Subject="sub-46", Run=1, Model="model-001");
+```
+
+For the ds004645 resting-state example:
+
+```matlab
+results = physio4all_run("fastfmri", ...
+    Subject="sub-01", Run=1, Model="model-001");
 ```
 
 For a fresh run that keeps disposable preprocessing files on a local scratch
@@ -81,7 +112,7 @@ folder, use:
 
 ```matlab
 physio4all_setup
-results = physio4all_run("brainhack23_ds004808", ...
+results = physio4all_run("brainhack23", ...
     Subject="sub-46", ...
     Run=1, ...
     Model="model-001", ...
@@ -174,8 +205,11 @@ to use, and which pipeline options are appropriate for that dataset.
 ```text
 PhysIO-4-All/
 |-- examples/                       Dataset-specific configurations and documentation
-|   `-- brainhack23_ds004808/
-|       |-- physio4all_example_brainhack23_ds004808.m
+|   |-- openneuro_ds004808_brainhack23/
+|   |   |-- physio4all_example_openneuro_ds004808_brainhack23.m
+|   |   `-- README.md
+|   `-- openneuro_ds004645_fastfmri/
+|       |-- physio4all_example_openneuro_ds004645_fastfmri.m
 |       `-- README.md
 |-- models/                         Reusable analysis configurations
 |   |-- physio4all_model_001.m

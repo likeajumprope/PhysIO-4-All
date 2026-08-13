@@ -27,11 +27,17 @@ addpath(genpath(physio_dir));
 %% Make PhysIO visible inside SPM/toolbox for Batch Editor integration
 [~, spm_physio_dir] = ensure_physio_spm_toolbox_integration(spm_dir, physio_dir);
 
-%% Add SPM toolboxes after potential PhysIO integration step and remove original PhysIO folder from path
+%% Keep the vendored PhysIO checkout authoritative on the MATLAB path
+% The SPM toolbox entry can be a junction to physio_dir. Adding the junction
+% and then removing physio_dir is unreliable on Windows because both paths
+% canonicalize to the same directory. Keep the junction for SPM discovery,
+% but execute PhysIO directly from the pinned submodule.
 if isfolder(spm_physio_dir)
-    addpath(genpath(spm_physio_dir));
-    rmpath(genpath(physio_dir));
+    remove_other_physio_paths(physio_dir);
+    addpath(genpath(physio_dir), '-begin');
 end
+
+assert_pinned_physio_on_path(physio_dir);
 
 %% Report resulting setup status
 fprintf('Added PhysIO-4-All entry points to path: %s\n', repo_root);
@@ -51,6 +57,49 @@ if isempty(which('physio4all.run'))
     warning('The physio4all namespace does not appear to be available.');
 end
 
+end
+
+function assert_pinned_physio_on_path(physio_dir)
+% Verify that another installed PhysIO does not shadow the submodule.
+
+resolved_file = which('tapas_physio_new');
+expected_root = canonical_path(physio_dir);
+resolved_root = canonical_path(fileparts(resolved_file));
+if ~strcmpi(resolved_root, expected_root)
+    error(['PhysIO path resolution escaped the pinned submodule.' newline ...
+        'Expected: ' expected_root newline ...
+        'Resolved: ' resolved_root]);
+end
+
+fprintf('Pinned PhysIO path check: OK (%s)\n', resolved_file);
+end
+
+function remove_other_physio_paths(physio_dir)
+% Remove other installed PhysIO trees from this MATLAB session only.
+
+expected_root = canonical_path(physio_dir);
+init_files = which('tapas_physio_init', '-all');
+if ischar(init_files)
+    init_files = {init_files};
+end
+
+for iFile = 1:numel(init_files)
+    active_root = fileparts(init_files{iFile});
+    if ~strcmpi(canonical_path(active_root), expected_root)
+        rmpath(genpath(active_root));
+        fprintf('Removed competing PhysIO path: %s\n', active_root);
+    end
+end
+end
+
+function path_out = canonical_path(path_in)
+% Resolve filesystem links for reliable path comparisons.
+
+try
+    path_out = char(java.io.File(path_in).getCanonicalPath());
+catch
+    path_out = char(path_in);
+end
 end
 
 function isSuccessful = ensure_submodules_present(repo_root, dependency_dirs)
