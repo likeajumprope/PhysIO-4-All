@@ -147,13 +147,32 @@ to choose a different location.
 
 ## Pipeline Description (`physio4all_run`)
 
-```text
-resolve example + model
-    -> preprocess BOLD
-    -> compute PhysIO regressors
-    -> fit nuisance GLM
-    -> assess statistical maps and tSNR gains
+```mermaid
+flowchart TD
+    config["Resolve example + model<br/>Input paths, acquisition metadata, and processing settings"]
+
+    subgraph inputs["Input data"]
+        bold["fMRI BOLD images<br/>NIfTI time series"]
+        recordings["Physiological recordings<br/>Cardiac and respiratory signals"]
+        timing["Scan timing and acquisition metadata<br/>Triggers / BIDS timing, TR, volume and slice counts"]
+    end
+
+    config -.-> inputs
+    bold --> preprocess["1. preprocess<br/>Realign / reslice; optionally smooth"]
+    preprocess -->|Processed BOLD| glm["3. fit_glm<br/>Fit nuisance-only SPM GLM"]
+    preprocess -->|Motion parameters| physio["2. compute_physio<br/>Synchronize and preprocess recordings<br/>Build physiological and movement regressors"]
+    recordings --> physio
+    timing --> physio
+    timing -->|TR| glm
+    physio -->|multiple_regressors.txt| glm
+    physio -->|physio.mat| assess["4. assess_physio<br/>Create PhysIO contrasts<br/>Assess statistical maps and optional tSNR gains"]
+    glm -->|Estimated SPM model| assess
+    preprocess -->|Mean BOLD for overlays| assess
+    assess --> reports["Assessment outputs<br/>PDF / PNG statistical maps<br/>NIfTI tSNR and gain maps when enabled"]
 ```
+
+Solid arrows show data flow; the dotted arrow shows input resolution. The
+selected example and model configure all four numbered stages.
 
 `physio4all_run` loads the dataset definition from `examples/`, applies the
 selected `model-###` from `models/`, resolves the input files and output roots,
