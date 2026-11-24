@@ -124,8 +124,11 @@ if isfield(settings, "method") && settings.method == "acompcor"
     batch.model.retroicor = struct('no', struct([]));
     batch.model.rvt = struct('no', struct([]));
     batch.model.hrv = struct('no', struct([]));
+    % Smoothing would mix signals across tissue boundaries before PCA.
     noise.fmri_files = cellstr(preprocessOutputs.realignedBoldFile);
     noise.roi_files = cellstr(preprocessOutputs.noiseRoiFiles(:));
+    % PhysIO estimates per-ROI transforms if grids differ. The masks
+    % already share the T1-to-BOLD transform and their grids were checked.
     noise.force_coregister = 'No';
     % Masks are already thresholded and eroded in anatomical space, then
     % resliced to the BOLD grid. Do not erode a second time in EPI voxels.

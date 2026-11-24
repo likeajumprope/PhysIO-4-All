@@ -120,11 +120,25 @@ if plan.required(1)
         runInfo, example, workFolder, preprocessFolder, ...
         Overwrite=plan.overwrite(1), ...
         SmoothingFwhm=model.preprocessing.smoothingFwhm);
+    % A recording-based model needs only BOLD preprocessing. An aCompCor
+    % preprocessing-only run also delivers native tissue maps and alignment.
+    if isfield(runInfo, "anatomicalFile")
+        subjectFolder = fullfile(derivativesRoot, example.id, subjectID);
+        preprocessOutputs.anatomy = physio4all.preprocess_anatomy( ...
+            runInfo.anatomicalFile, subjectFolder, preprocessOutputs, plan.overwrite(1));
+    end
 end
 
 if plan.required(2)
     physioSignature.analysis = analysisKey;
     physioSignature.preprocessing = physio4all.input_signature(preprocessOutputs.checkpointFile);
+    if isfield(preprocessOutputs, "anatomy")
+        % Replacing the anatomical inputs also invalidates a cached PCA fit.
+        anatomy = preprocessOutputs.anatomy;
+        physioSignature.transform = physio4all.input_signature(anatomy.transformFile);
+        physioSignature.wm = physio4all.input_signature(anatomy.tissueFiles(1));
+        physioSignature.csf = physio4all.input_signature(anatomy.tissueFiles(2));
+    end
     physioFolder = fullfile(physioFolder, physio4all.cache_key(physioSignature));
     physioOutputs = physio4all.compute_physio( ...
         runInfo, preprocessOutputs, example, physioFolder, ...

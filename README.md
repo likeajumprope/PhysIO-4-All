@@ -127,7 +127,8 @@ For example, select `Model="model-002"` or `Model="model-003"` in the call
 above. Both aCompCor variants run entirely in PhysIO and use unsmoothed,
 realigned BOLD for PCA. They require one uncompressed `*_T1w.nii` in the
 subject's `anat/` directory; physiological recordings are not required.
-SPM segments the T1w and aligns eroded WM/CSF masks to the BOLD grid.
+Preprocessing segments the subject T1w and estimates a rigid transform to the run’s mean BOLD.
+The aCompCor stage uses that transform to reslice the eroded tissue masks.
 Review those masks before interpreting results, especially for partial
 brain coverage. See [model settings and references](models/README.md) for
 the CONN/fMRIPrep connections and the differences from those pipelines.
@@ -213,10 +214,16 @@ Changing these selects a different cache. The checkpoint also verifies
 its input/settings signature before reuse. A changed model configuration
 selects separate downstream PhysIO/GLM/assessment caches.
 
-WM/CSF preparation is stored with the shared preprocessing, keyed by T1w
-identity, mask thresholds, and erosion settings. The two aCompCor models
-reuse these masks when compatible; component selection is computed per
-model. Changing only PC count does not rerun segmentation/coregistration.
+For aCompCor, `Stages="preprocess"` also returns
+`results.preprocess.anatomy.tissueFiles` (native WM, CSF) and
+`results.preprocess.anatomy.transformFile` (T1w to mean BOLD).
+The subject's `anat/` derivative holds the segmentation shared across runs
+and excerpts. Each run caches its own alignment under `preproc/<key>/coreg/`.
+Changing a threshold or erosion setting only rebuilds the masks and dependent
+model outputs. Changing the PC count can reuse the masks as well.
+`OverwriteFrom="preprocess"` explicitly rebuilds the anatomy for an aCompCor
+run. The first run after upgrading creates a subject-level segmentation
+checkpoint. Recording-based models only require BOLD preprocessing.
 
 `Stages="fit_glm"` or `Stages="assess_physio"` still ensures prerequisite
 outputs exist, reusing compatible checkpoints. There is no need to skip

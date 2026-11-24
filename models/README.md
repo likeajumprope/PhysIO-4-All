@@ -50,19 +50,29 @@ outputs; do not reuse a GLM fitted with the previous regressor matrix.
 
 ## aCompCor settings in PhysIO
 
-The two variants use `model.noise_rois`, not `model.retroicor`. Each requires
-one uncompressed subject T1w image. The pipeline copies it to the model's
-`physio/<model>/noise_rois/` folder before SPM segmentation. Separate native
-WM and CSF posterior maps are thresholded at >0.5 and eroded once using
-`spm_erode` in **anatomical voxels**. A single rigid transformation estimated
-from bias-corrected T1w to mean BOLD is applied to both masks with nearest-
-neighbour resampling. Masks must match the BOLD grid and retain enough voxels.
+The two variants use PhysIO's `model.noise_rois`. Preprocessing and regressor
+extraction use the images in this order.
 
-PhysIO receives these binary masks with `thresholds=0.5`, `n_voxel_crop=0`,
-and `force_coregister='No'`: preparation has already handled thresholding,
-erosion, and registration. PCA uses the **unsmoothed realigned** BOLD file;
-the GLM continues to use its smoothed counterpart. Mask quality and alignment
-need visual review, particularly in the partial-coverage fast-fMRI example.
+1. **Segment the subject T1w.** SPM writes the bias-corrected T1w and native
+   WM and CSF probability maps (`c2` and `c3`) under the subject's `anat/`
+   derivative. All runs and quick checks using that T1w, tissue template and
+   segmentation settings can share these continuous maps.
+2. **Align anatomy to the run.** BOLD realignment corrects motion within the
+   functional series. Preprocessing therefore also estimates one rigid
+   transform from the bias-corrected T1w to this run's mean BOLD. It saves the
+   transform separately so each run can use the same native tissue maps.
+3. **Make extraction masks.** During `compute_physio`, threshold each posterior
+   at >0.5 and erode once on the anatomical grid. Apply the saved transform
+   to both mask headers and reslice with nearest-neighbour interpolation.
+   The masks must match the unsmoothed BOLD grid and retain enough voxels.
+   Changing the threshold or erosion selects new masks.
+4. **Extract regressors with PhysIO.** PhysIO can register each supplied ROI
+   separately and threshold and erode after reslicing to the functional grid.
+   One BOLD voxel can cover several anatomical voxels. To preserve the native
+   erosion and the shared anatomical transform, pass the prepared binary masks
+   with `thresholds=0.5`, `n_voxel_crop=0`, and `force_coregister='No'`.
+   PhysIO extracts means and PCs from **unsmoothed realigned** BOLD. The GLM
+   uses smoothed BOLD. Inspect mask overlays, especially for partial coverage.
 
 For model-002, `n_components=[4 4]` requests four PCs per tissue. PhysIO adds
 the mean automatically, yielding ten anatomical regressors. For model-003,

@@ -24,14 +24,18 @@ regressorsFile = fullfile(outputFolder, "multiple_regressors.txt");
 if ~isfile(physioFile) || ~isfile(regressorsFile)
     if isfield(example.physio, "method") && ...
             example.physio.method == "acompcor"
-        maskSignature.anatomical = physio4all.input_signature(runInfo.anatomicalFile);
-        maskSignature.thresholds = example.physio.noiseThresholds;
-        maskSignature.crop = example.physio.noiseVoxelCrop;
-        maskFolder = fullfile(preprocessOutputs.outputFolder, "noise_rois", ...
-            physio4all.cache_key(maskSignature));
-        preprocessOutputs.noiseRoiFiles = physio4all.prepare_noise_rois( ...
-            runInfo, preprocessOutputs, example.physio, ...
-            maskFolder);
+        sharedMasks = physio4all.prepare_noise_rois(preprocessOutputs, example.physio);
+        % PhysIO writes its final ROIs beside its input masks and names PCA
+        % loading maps after them. Keep these diagnostics analysis-specific.
+        roiFolder = fullfile(outputFolder, "noise_rois");
+        if ~isfolder(roiFolder)
+            mkdir(roiFolder);
+        end
+        prefix = physio4all.cache_key(outputFolder);
+        preprocessOutputs.noiseRoiFiles = fullfile(roiFolder, prefix + ["_wm.nii"; "_csf.nii"]);
+        for tissue = 1:numel(sharedMasks)
+            copyfile(sharedMasks(tissue), preprocessOutputs.noiseRoiFiles(tissue));
+        end
     end
     matlabbatch = physio4all.build_physio_batch( ...
         runInfo, preprocessOutputs, example, outputFolder);

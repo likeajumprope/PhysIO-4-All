@@ -1,6 +1,9 @@
 function outputs = preprocess(runInfo, example, workFolder, ...
         derivativeFolder, options)
 %PREPROCESS Copy raw BOLD data and run lightweight SPM preprocessing.
+%   Realignment estimates motion between volumes of this functional run.
+%   Keep its unsmoothed series for tissue PCA and its mean as the anatomical
+%   registration target. The pipeline calls preprocess_anatomy for aCompCor.
 
 arguments
     runInfo (1,1) struct
