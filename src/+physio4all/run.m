@@ -11,8 +11,7 @@ arguments
     options.DataRoot {mustBeTextScalar} = ""
     options.WorkRoot {mustBeTextScalar} = ""
     options.DerivativesRoot {mustBeTextScalar} = ""
-    options.Overwrite (1,1) logical = false
-    options.OverwritePreprocessing (1,1) logical = false
+    options.OverwriteFrom {mustBeTextScalar} = "none"
     options.QuickCheck (1,1) logical = false
     options.QuickCheckVolumes (1,1) double {mustBeInteger, mustBePositive, mustBeFinite} = 100
     options.EnableDiary (1,1) logical = true
@@ -55,12 +54,7 @@ glmFolder = fullfile(derivativeRunFolder, "glm", model.id);
 assessmentFolder = fullfile(derivativeRunFolder, "assessment", ...
     model.id);
 
-stages = lower(string(options.Stages));
-validStages = ["preprocess", "compute_physio", "fit_glm", "assess_physio"];
-if any(~ismember(stages, validStages))
-    error("physio4all:InvalidStage", ...
-        "Stages must be selected from: %s.", strjoin(validStages, ", "));
-end
+plan = physio4all.plan_stages(options.Stages, options.OverwriteFrom);
 
 logFile = string(options.LogFile);
 if options.EnableDiary
@@ -110,9 +104,6 @@ if isfield(runInfo, "anatomicalFile")
     analysisSignature.anatomical = physio4all.input_signature(runInfo.anatomicalFile);
 end
 analysisKey = physio4all.cache_key(analysisSignature);
-physioFolder = fullfile(physioFolder, analysisKey);
-glmFolder = fullfile(glmFolder, analysisKey);
-assessmentFolder = fullfile(assessmentFolder, analysisKey);
 
 if options.Verbose
     fprintf("\n=== PhysIO-4-All: %s / %s / %s ===\n", ...
@@ -124,40 +115,45 @@ if options.Verbose
         runInfo.nSlices, runInfo.physioNSlices);
 end
 
-needsPreprocessing = any(ismember(stages, ...
-    ["preprocess", "compute_physio", "fit_glm", "assess_physio"]));
-if needsPreprocessing
+if plan.required(1)
     preprocessOutputs = physio4all.preprocess( ...
         runInfo, example, workFolder, preprocessFolder, ...
-        Overwrite=options.OverwritePreprocessing, ...
+        Overwrite=plan.overwrite(1), ...
         SmoothingFwhm=model.preprocessing.smoothingFwhm);
 end
 
-needsPhysio = any(ismember(stages, ...
-    ["compute_physio", "fit_glm", "assess_physio"]));
-if needsPhysio
+if plan.required(2)
+    physioSignature.analysis = analysisKey;
+    physioSignature.preprocessing = physio4all.input_signature(preprocessOutputs.checkpointFile);
+    physioFolder = fullfile(physioFolder, physio4all.cache_key(physioSignature));
     physioOutputs = physio4all.compute_physio( ...
         runInfo, preprocessOutputs, example, physioFolder, ...
-        Overwrite=options.Overwrite || options.OverwritePreprocessing);
+        Overwrite=plan.overwrite(2));
 end
 
-needsGlm = any(ismember(stages, ["fit_glm", "assess_physio"]));
-if needsGlm
+if plan.required(3)
+    glmSignature.analysis = analysisKey;
+    glmSignature.regressors = physio4all.input_signature(physioOutputs.regressorsFile);
+    glmFolder = fullfile(glmFolder, physio4all.cache_key(glmSignature));
     glmOutputs = physio4all.fit_glm( ...
         runInfo, preprocessOutputs, physioOutputs, example, glmFolder, ...
-        Overwrite=options.Overwrite || options.OverwritePreprocessing);
+        Overwrite=plan.overwrite(3));
 end
 
-if ismember("assess_physio", stages)
+if plan.required(4)
+    assessmentSignature.analysis = analysisKey;
+    assessmentSignature.fit = physio4all.input_signature(glmOutputs.residualMeanSquareFile);
+    assessmentFolder = fullfile(assessmentFolder, physio4all.cache_key(assessmentSignature));
     assessmentOutputs = physio4all.assess_physio( ...
         runInfo, preprocessOutputs, physioOutputs, glmOutputs, ...
         example, assessmentFolder, ...
         ComputeTsnrGains=options.ComputeTsnrGains, ...
-        Overwrite=options.Overwrite || options.OverwritePreprocessing);
+        Overwrite=plan.overwrite(4));
 end
 
 results.example = example;
 results.model = model;
+results.plan = plan;
 results.runInfo = runInfo;
 results.paths.dataRoot = string(dataRoot);
 results.paths.workRoot = string(workRoot);

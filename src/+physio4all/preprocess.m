@@ -149,7 +149,7 @@ if tf
             ~isequal(jsonencode(checkpoint.signature), jsonencode(signature))
         error("physio4all:PreprocessingCacheMismatch", ...
             "Preprocessing inputs/settings differ or provenance is missing. " + ...
-            "Use a fresh output folder or OverwritePreprocessing=true in the pipeline.");
+            "Use a fresh output folder or OverwriteFrom=""preprocess"" in the pipeline.");
     end
 end
 end

@@ -146,16 +146,41 @@ results = physio4all_run("brainhack23", ...
     Run=1, ...
     Model="model-001", ...
     WorkRoot="C:\Users\kasperla\TEMP\physio4all\work", ...
-    Overwrite=true, ...
+    OverwriteFrom="compute_physio", ...
     EnableDiary=true, ...
     ComputeTsnrGains=true, ...
     Verbose=true);
 ```
 
-`WorkRoot` can point to any writable scratch location. `Overwrite=true`
-recomputes PhysIO, GLM, and assessment stages while reusing compatible
-preprocessing. Set `OverwritePreprocessing=true` to force preprocessing too
-(which also recomputes downstream stages). The
+`WorkRoot` can point to any writable scratch location. `OverwriteFrom`
+specifies the first stage to force and includes its downstream stages up to
+the endpoint selected by `Stages`:
+
+| `OverwriteFrom` | Forced stages (with default `Stages`) |
+| --- | --- |
+| `"none"` (default) | None; resume compatible completed work and create missing stages |
+| `"all"` or `"preprocess"` | All four stages |
+| `"compute_physio"` | PhysIO, GLM, assessment |
+| `"fit_glm"` | GLM, assessment |
+| `"assess_physio"` | Assessment |
+
+The boundary is inclusive. `Stages` chooses the endpoint; `OverwriteFrom`
+chooses which of the required stages to recompute. For example,
+`Stages="fit_glm", OverwriteFrom="compute_physio"` reuses preprocessing and
+recomputes PhysIO plus the GLM, without running assessment. A boundary beyond
+the requested endpoint is rejected. A scalar boundary avoids retaining a
+downstream fit after explicitly regenerating its regressors. Downstream
+cache keys also track upstream product timestamps, so later invocations
+cannot silently reuse fits from replaced inputs.
+
+`"none"` means no forced recomputation of completed stages, rather than a
+read-only filesystem mode: missing/incomplete stages can be completed,
+diaries are appended, and assessment can add contrasts to `SPM.mat`.
+The previous prototype's boolean `Overwrite` and `OverwritePreprocessing`
+options are replaced by this single pipeline option. Individual stage
+functions still use internal boolean overwrite controls.
+
+The
 remaining options above are the defaults and are shown explicitly to make the
 run configuration clear. Unless `Stages` is specified, the pipeline runs
 preprocessing, PhysIO computation, GLM estimation, and assessment.
@@ -180,7 +205,7 @@ complete acquisition before selecting the first N scan rows, so end-aligned
 recordings stay aligned. These short runs check execution; their statistics
 and estimated PCA components are not a substitute for full-run analysis.
 
-`Overwrite=false` is the default. Models with identical BOLD inputs,
+`OverwriteFrom="none"` is the default. Models with identical BOLD inputs,
 volume counts, and preprocessing settings reuse the same images, regardless
 of model ID. Cache identifiers include input path, file size/modification
 time, preprocessing settings (including smoothing), and SPM location.
@@ -257,14 +282,14 @@ starts the diary, and coordinates four stages:
 | `assess_physio` | `physio4all.assess_physio` | Create PhysIO contrasts and export visual statistical-map and tSNR comparisons. | PDF/PNG statistical maps, NIfTI tSNR maps, and assessment checkpoints. |
 
 The default `Stages` value runs all four stages. A request for a later stage
-also resolves its upstream products. With `Overwrite=false`, complete upstream
-outputs are reused; with `Overwrite=true`, the selected stage and its required
-upstream chain are rebuilt. The returned `results` struct records the resolved
+also resolves its upstream products. With `OverwriteFrom="none"`, compatible
+completed stages are reused. A stage-valued `OverwriteFrom` forces that stage
+and the downstream required stages. The returned `results` struct records the resolved
 configuration, roots, and outputs from every stage that ran or was reused.
 
 Checkpoints act as completion markers along this sequence: they are written
 only after the output set they describe has been produced successfully. On a
-later invocation with `Overwrite=false`, the pipeline uses these markers
+later invocation with `OverwriteFrom="none"`, the pipeline uses these markers
 together with the required stage outputs to reuse completed work and continue
 with the next requested step. A missing checkpoint or required output prevents
 a partially completed step from being treated as resumable. These readable
@@ -360,10 +385,11 @@ derivatives/
                     `-- *_pipeline.log           Incremental MATLAB diary
 ```
 
-`preproc/` and `physio/` are currently run-level products. Model-specific GLM,
-assessment, and log products live below `model-<NNN>` directories. Use
-`Overwrite=true` when deliberately recomputing run-level products after their
-configuration changes.
+Preprocessing caches are shared at run level. PhysIO, GLM, and assessment
+products use configuration-specific caches, with separate model directories
+for the additional models; logs are model-specific. Input or
+configuration changes select new caches automatically. Use `OverwriteFrom`
+when intentionally recomputing otherwise compatible products.
 
 Each dataset example selects a default configuration from the top-level
 `models/` folder, such as `model-001`. The model catalog summarizes each

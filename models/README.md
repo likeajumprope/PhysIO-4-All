@@ -133,9 +133,12 @@ PhysIO/GLM/assessment folders include an analysis-configuration key so that
 changing component counts, censoring, or other model settings selects new
 downstream outputs. Keys identify inputs by path, size, and modification
 time rather than reading/hash-checking entire imaging files.
-`Overwrite=false` reuses compatible results. `Overwrite=true` recomputes
-downstream analysis while preserving preprocessing;
-`OverwritePreprocessing=true` recomputes preprocessing and downstream stages.
+`OverwriteFrom="none"` reuses compatible completed stages and fills missing
+ones. Choose `"preprocess"` (or `"all"`), `"compute_physio"`, `"fit_glm"`, or
+`"assess_physio"` to force recomputation from that stage inclusively, up to
+the endpoint requested by `Stages`. Upstream compatible products are reused.
+Regenerated upstream products change downstream cache keys, including when
+a later invocation requests stages beyond the current endpoint.
 For a persistent new configuration, copy a model to the next unused ID,
 update its `model.id` and settings, and add it to the catalog above.
 
