@@ -40,6 +40,10 @@ derivativeRunFolder = fullfile( ...
     derivativesRoot, example.id, subjectID, runLabel);
 preprocessFolder = fullfile(derivativeRunFolder, "preproc");
 physioFolder = fullfile(derivativeRunFolder, "physio");
+% Preserve the legacy model-001 cache; other models must never reuse it.
+if model.id ~= "model-001"
+    physioFolder = fullfile(physioFolder, model.id);
+end
 glmFolder = fullfile(derivativeRunFolder, "glm", model.id);
 assessmentFolder = fullfile(derivativeRunFolder, "assessment", ...
     model.id);

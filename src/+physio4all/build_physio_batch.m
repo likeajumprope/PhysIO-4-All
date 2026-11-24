@@ -100,4 +100,36 @@ matlabbatch{1}.spm.tools.physio.verbose.fig_output_file = ...
     'physio.fig';
 matlabbatch{1}.spm.tools.physio.verbose.use_tabs = false;
 
+% Defaults preserve older configurations that predate explicit switches.
+if isfield(settings, "includeRetroicor") && ~settings.includeRetroicor
+    matlabbatch{1}.spm.tools.physio.model.retroicor = struct('no', struct([]));
+end
+if isfield(settings, "includeRvt") && ~settings.includeRvt
+    matlabbatch{1}.spm.tools.physio.model.rvt = struct('no', struct([]));
+end
+if isfield(settings, "includeHrv") && ~settings.includeHrv
+    matlabbatch{1}.spm.tools.physio.model.hrv = struct('no', struct([]));
+end
+
+if isfield(settings, "method") && settings.method == "acompcor"
+    batch = matlabbatch{1}.spm.tools.physio;
+    batch.log_files.cardiac = {''};
+    batch.log_files.respiration = {''};
+    batch.log_files.scan_timing = {''};
+    batch.scan_timing.sync = struct('nominal', struct([]));
+    batch.model.retroicor = struct('no', struct([]));
+    batch.model.rvt = struct('no', struct([]));
+    batch.model.hrv = struct('no', struct([]));
+    noise.fmri_files = cellstr(preprocessOutputs.realignedBoldFile);
+    noise.roi_files = cellstr(preprocessOutputs.noiseRoiFiles(:));
+    noise.force_coregister = 'No';
+    % Masks are already thresholded and eroded in anatomical space, then
+    % resliced to the BOLD grid. Do not erode a second time in EPI voxels.
+    noise.thresholds = 0.5;
+    noise.n_voxel_crop = 0;
+    noise.n_components = settings.noiseComponents;
+    batch.model.noise_rois = struct('yes', noise);
+    matlabbatch{1}.spm.tools.physio = batch;
+end
+
 end

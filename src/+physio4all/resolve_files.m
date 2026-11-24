@@ -31,12 +31,23 @@ boldJsonFile = fullfile(funcFolder, boldJsonBaseName);
 assertFileExists(boldFile, "BOLD image");
 assertFileExists(boldJsonFile, "BOLD JSON sidecar");
 
-cardiacFile = selectOneFile(physioFolder, ...
-    sprintf(example.files.cardiac, runNumber), "cardiac log");
-respirationFile = selectOneFile(physioFolder, ...
-    sprintf(example.files.respiration, runNumber), "respiration log");
-scanTimingFile = selectOneFile(physioFolder, ...
-    sprintf(example.files.scanTiming, runNumber), "scan-timing log");
+isACompCor = isfield(example.physio, "method") && ...
+    example.physio.method == "acompcor";
+cardiacFile = "";
+respirationFile = "";
+scanTimingFile = "";
+if isACompCor
+    runInfo.anatomicalFile = string(selectOneFile( ...
+        fullfile(subjectRoot, "anat"), ...
+        "^" + subjectID + ".*_T1w[.]nii$", "uncompressed T1w image"));
+else
+    cardiacFile = selectOneFile(physioFolder, ...
+        sprintf(example.files.cardiac, runNumber), "cardiac log");
+    respirationFile = selectOneFile(physioFolder, ...
+        sprintf(example.files.respiration, runNumber), "respiration log");
+    scanTimingFile = selectOneFile(physioFolder, ...
+        sprintf(example.files.scanTiming, runNumber), "scan-timing log");
+end
 
 metadata = jsondecode(fileread(boldJsonFile));
 niftiMetadata = niftiinfo(boldFile);

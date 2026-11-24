@@ -2,13 +2,17 @@ function model = physio4all_model_001()
 %PHYSIO4ALL_MODEL_001 Lightweight PhysIO nuisance-regression model.
 
 model.id = "model-001";
-model.name = "PhysIO nuisance model with 3 mm smoothing";
+model.name = "RETROICOR + HRV + RVT with 3 mm smoothing";
 model.description = [ ...
     "Lightweight realignment and 3 mm smoothing followed by a " ...
-    "nuisance-only SPM GLM with RETROICOR, RVT, and movement regressors."];
+    "nuisance-only SPM GLM with RETROICOR, HRV, RVT, and movement regressors."];
 
 model.preprocessing.smoothingFwhm = [3 3 3];
 
+model.physio.method = "recordings";
+model.physio.includeRetroicor = true;
+model.physio.includeRvt = true;
+model.physio.includeHrv = true;
 model.physio.cardiacOrder = 3;
 model.physio.respiratoryOrder = 4;
 model.physio.interactionOrder = 1;

@@ -106,6 +106,30 @@ results = physio4all_run("fastfmri", ...
     Subject="sub-01", Run=1, Model="model-001");
 ```
 
+The model family keeps motion regression, 3 mm GLM smoothing, and SPM GLM
+settings consistent while varying the physiological regressors:
+
+| Model | Physiological regressors |
+| --- | --- |
+| `model-001` | RETROICOR + HRV + RVT (existing default) |
+| `model-002` | aCompCor: four PCs + mean from each of WM and CSF |
+| `model-003` | aCompCor: PCs exceeding 50% variance + mean from each tissue |
+| `model-004` | RETROICOR |
+| `model-005` | RETROICOR + RVT |
+| `model-006` | RETROICOR + HRV |
+
+For example, select `Model="model-002"` or `Model="model-003"` in the call
+above. Both aCompCor variants run entirely in PhysIO and use unsmoothed,
+realigned BOLD for PCA. They require one uncompressed `*_T1w.nii` in the
+subject's `anat/` directory; physiological recordings are not required.
+SPM segments the T1w and aligns eroded WM/CSF masks to the BOLD grid.
+Review those masks before interpreting results, especially for partial
+brain coverage. See [model settings and references](models/README.md) for
+the CONN/fMRIPrep connections and the differences from those pipelines.
+
+New models store regressors under `physio/<model>/`; model-001 retains its
+existing `physio/` location. GLMs, assessments, and logs are model-specific.
+
 For a fresh run that keeps disposable preprocessing files on a local scratch
 disk while retaining durable outputs under the repository's `derivatives/`
 folder, use:
@@ -154,14 +178,16 @@ flowchart TD
     subgraph inputs["Input data"]
         bold["fMRI BOLD images<br/>NIfTI time series"]
         recordings["Physiological recordings<br/>Cardiac and respiratory signals"]
+        anatomy["T1w anatomy<br/>WM and CSF masks for aCompCor"]
         timing["Scan timing and acquisition metadata<br/>Triggers / BIDS timing, TR, volume and slice counts"]
     end
 
     config -.-> inputs
     bold --> preprocess["1. preprocess<br/>Realign / reslice; optionally smooth"]
     preprocess -->|Processed BOLD| glm["3. fit_glm<br/>Fit nuisance-only SPM GLM"]
-    preprocess -->|Motion parameters| physio["2. compute_physio<br/>Synchronize and preprocess recordings<br/>Build physiological and movement regressors"]
+    preprocess -->|Motion and unsmoothed BOLD| physio["2. compute_physio<br/>Model-specific physiological regressors<br/>Recordings or anatomical noise-ROI PCA, plus movement"]
     recordings --> physio
+    anatomy --> physio
     timing --> physio
     timing -->|TR| glm
     physio -->|multiple_regressors.txt| glm
