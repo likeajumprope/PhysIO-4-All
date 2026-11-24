@@ -5,7 +5,7 @@ preprocessing, PhysIO regressors, GLM settings, and assessment outputs;
 acquisition details and file-discovery rules remain under `examples/`.
 
 Select a model with `physio4all_run(..., Model="model-002")`. All six models
-use the same six motion parameters and MAXVAL censoring (`[3 Inf]`), 3 mm
+use the same six motion parameters with motion censoring disabled, 3 mm
 GLM smoothing, 128 s SPM high-pass filter, and AR(1) serial correlations.
 There is no global-signal regression. These are nuisance-only assessment
 GLMs; they do not include a task design or implement connectivity analysis.
@@ -21,9 +21,31 @@ GLMs; they do not include a task design or implement connectivity analysis.
 
 The original model-001 batch already enabled HRV, despite its description
 mentioning only RETROICOR and RVT. Its numerical settings and existing output
-locations are preserved. RETROICOR orders remain cardiac 3, respiratory 4,
+locations are preserved. Motion censoring is now disabled across all models.
+RETROICOR orders remain cardiac 3, respiratory 4,
 interaction 1; HRV/RVT response-function delays remain zero and RVT uses
 the Hilbert method.
+
+## Optional motion censoring
+
+`model.physio.movementCensoringEnabled = false` in model-001 is inherited by
+all six models. This maps to PhysIO's `censoring_method='none'` and retains
+the six motion regressors. Set it to `true` in a model configuration to use
+`movementCensoringMethod` and `movementCensoringThreshold` (currently
+`"MAXVAL"` and `[3 Inf]`). Older custom configurations without the switch
+continue to use their configured censoring method.
+
+CONN includes outlier/scrubbing regressors in its default denoising pipeline.
+fMRIPrep produces motion-outlier columns for optional downstream use; it
+does not apply denoising itself. These choices are separate from aCompCor's
+component selection. Our switch is off to simplify model comparisons.
+Even without censoring, physiological component counts and design rank can
+still change residual degrees of freedom. For identical input motion and
+thresholds, censoring would add the same outlier columns to each model.
+
+Existing cached outputs retain their original censoring. To evaluate this
+change, use fresh derivative roots or recompute PhysIO, GLM, and assessment
+outputs; do not reuse a GLM fitted with the previous regressor matrix.
 
 ## aCompCor settings in PhysIO
 

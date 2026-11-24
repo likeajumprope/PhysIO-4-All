@@ -118,6 +118,11 @@ settings consistent while varying the physiological regressors:
 | `model-005` | RETROICOR + RVT |
 | `model-006` | RETROICOR + HRV |
 
+All models retain six motion regressors. Motion censoring is off by default;
+set `model.physio.movementCensoringEnabled = true` in a configuration to enable
+its configured outlier-regressor method and threshold. Existing outputs must
+be recomputed to reflect a changed censoring setting.
+
 For example, select `Model="model-002"` or `Model="model-003"` in the call
 above. Both aCompCor variants run entirely in PhysIO and use unsmoothed,
 realigned BOLD for PCA. They require one uncompressed `*_T1w.nii` in the

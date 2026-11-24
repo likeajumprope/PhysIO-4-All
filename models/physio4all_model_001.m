@@ -20,6 +20,8 @@ model.physio.rvtMethod = "hilbert";
 model.physio.rvtDelays = 0;
 model.physio.hrvDelays = 0;
 model.physio.movementOrder = 6;
+% Spike regressors are optional; all derived models inherit this switch.
+model.physio.movementCensoringEnabled = false;
 model.physio.movementCensoringMethod = "MAXVAL";
 model.physio.movementCensoringThreshold = [3 Inf];
 
