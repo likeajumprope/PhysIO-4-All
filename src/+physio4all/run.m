@@ -12,6 +12,9 @@ arguments
     options.WorkRoot {mustBeTextScalar} = ""
     options.DerivativesRoot {mustBeTextScalar} = ""
     options.Overwrite (1,1) logical = false
+    options.OverwritePreprocessing (1,1) logical = false
+    options.QuickCheck (1,1) logical = false
+    options.QuickCheckVolumes (1,1) double {mustBeInteger, mustBePositive, mustBeFinite} = 100
     options.EnableDiary (1,1) logical = true
     options.LogFile {mustBeTextScalar} = ""
     options.ComputeTsnrGains (1,1) logical = true
@@ -25,6 +28,7 @@ if strlength(modelID) == 0
 end
 model = physio4all.get_model(example, modelID);
 example = physio4all.configure_model(example, model);
+example.modelID = model.id;
 subjectID = string(options.Subject);
 if strlength(subjectID) == 0
     subjectID = example.defaultSubject;
@@ -35,6 +39,9 @@ workRoot = resolveRoot(options.WorkRoot, example.repoRoot, "work");
 derivativesRoot = resolveRoot( ...
     options.DerivativesRoot, example.repoRoot, "derivatives");
 runLabel = sprintf("run-%02d", options.Run);
+if options.QuickCheck
+    runLabel = string(runLabel) + sprintf("_quickcheck-%04d", options.QuickCheckVolumes);
+end
 workFolder = fullfile(workRoot, example.id, subjectID, runLabel, "preproc");
 derivativeRunFolder = fullfile( ...
     derivativesRoot, example.id, subjectID, runLabel);
@@ -73,11 +80,39 @@ else
     logFile = "";
 end
 
-physio4all_setup();
-spm_jobman("initcfg");
+initializeDependencies(example.repoRoot);
 
 runInfo = physio4all.resolve_files( ...
     example, subjectID, options.Run, dataRoot);
+runInfo.fullNVolumes = runInfo.nVolumes;
+if options.QuickCheck
+    runInfo.nVolumes = min(runInfo.fullNVolumes, options.QuickCheckVolumes);
+end
+% Cache namespaces exclude the model ID, so compatible models share images.
+preprocessingSignature.version = 1;
+preprocessingSignature.bold = physio4all.input_signature(runInfo.boldFile);
+preprocessingSignature.json = physio4all.input_signature(runInfo.boldJsonFile);
+preprocessingSignature.nVolumes = runInfo.nVolumes;
+preprocessingSignature.settings = example.preprocessing;
+preprocessingSignature.spm = string(spm('Dir'));
+preprocessingKey = physio4all.cache_key(preprocessingSignature);
+workFolder = fullfile(workFolder, preprocessingKey);
+preprocessFolder = fullfile(preprocessFolder, preprocessingKey);
+analysisSignature.version = 1;
+analysisSignature.preprocessing = preprocessingKey;
+analysisSignature.glm = example.glm;
+analysisSignature.assessment = example.assessment;
+analysisSignature.physio = example.physio;
+analysisSignature.cardiac = physio4all.input_signature(runInfo.cardiacFile);
+analysisSignature.respiration = physio4all.input_signature(runInfo.respirationFile);
+analysisSignature.timing = physio4all.input_signature(runInfo.scanTimingFile);
+if isfield(runInfo, "anatomicalFile")
+    analysisSignature.anatomical = physio4all.input_signature(runInfo.anatomicalFile);
+end
+analysisKey = physio4all.cache_key(analysisSignature);
+physioFolder = fullfile(physioFolder, analysisKey);
+glmFolder = fullfile(glmFolder, analysisKey);
+assessmentFolder = fullfile(assessmentFolder, analysisKey);
 
 if options.Verbose
     fprintf("\n=== PhysIO-4-All: %s / %s / %s ===\n", ...
@@ -94,7 +129,7 @@ needsPreprocessing = any(ismember(stages, ...
 if needsPreprocessing
     preprocessOutputs = physio4all.preprocess( ...
         runInfo, example, workFolder, preprocessFolder, ...
-        Overwrite=options.Overwrite, ...
+        Overwrite=options.OverwritePreprocessing, ...
         SmoothingFwhm=model.preprocessing.smoothingFwhm);
 end
 
@@ -103,14 +138,14 @@ needsPhysio = any(ismember(stages, ...
 if needsPhysio
     physioOutputs = physio4all.compute_physio( ...
         runInfo, preprocessOutputs, example, physioFolder, ...
-        Overwrite=options.Overwrite);
+        Overwrite=options.Overwrite || options.OverwritePreprocessing);
 end
 
 needsGlm = any(ismember(stages, ["fit_glm", "assess_physio"]));
 if needsGlm
     glmOutputs = physio4all.fit_glm( ...
         runInfo, preprocessOutputs, physioOutputs, example, glmFolder, ...
-        Overwrite=options.Overwrite);
+        Overwrite=options.Overwrite || options.OverwritePreprocessing);
 end
 
 if ismember("assess_physio", stages)
@@ -118,7 +153,7 @@ if ismember("assess_physio", stages)
         runInfo, preprocessOutputs, physioOutputs, glmOutputs, ...
         example, assessmentFolder, ...
         ComputeTsnrGains=options.ComputeTsnrGains, ...
-        Overwrite=options.Overwrite);
+        Overwrite=options.Overwrite || options.OverwritePreprocessing);
 end
 
 results.example = example;
@@ -128,6 +163,12 @@ results.paths.dataRoot = string(dataRoot);
 results.paths.workRoot = string(workRoot);
 results.paths.derivativesRoot = string(derivativesRoot);
 results.paths.logFile = logFile;
+results.paths.preprocessingKey = preprocessingKey;
+results.paths.analysisKey = analysisKey;
+results.quickCheck.enabled = options.QuickCheck;
+results.quickCheck.requestedVolumes = options.QuickCheckVolumes;
+results.quickCheck.processedVolumes = runInfo.nVolumes;
+results.quickCheck.fullRunVolumes = runInfo.fullNVolumes;
 if exist("preprocessOutputs", "var")
     results.preprocess = preprocessOutputs;
 end
@@ -143,6 +184,20 @@ end
 fprintf("=== Pipeline invocation completed: %s ===\n", ...
     char(datetime("now")));
 
+end
+
+function initializeDependencies(repoRoot)
+% Avoid repeatedly rebuilding SPM's registry during a model comparison.
+persistent initializedRoot
+expectedSpm = fullfile(repoRoot, "external", "spm", "spm.m");
+expectedPhysio = fullfile(repoRoot, "external", "PhysIO", "tapas_physio_new.m");
+if isempty(initializedRoot) || initializedRoot ~= string(repoRoot) || ...
+        ~strcmpi(which('spm'), expectedSpm) || ...
+        ~strcmpi(which('tapas_physio_new'), expectedPhysio)
+    physio4all_setup();
+    spm_jobman("initcfg");
+    initializedRoot = string(repoRoot);
+end
 end
 
 function stopDiary()

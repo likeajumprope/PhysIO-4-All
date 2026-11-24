@@ -22,6 +22,9 @@ if ~isfolder(assessmentFolder)
 end
 
 [~, modelLabel] = fileparts(glmOutputs.outputFolder);
+if isfield(example, "modelID")
+    modelLabel = example.modelID;
+end
 filePrefix = sprintf("%s_run-%02d_%s", ...
     runInfo.subjectID, runInfo.runNumber, modelLabel);
 statMapFolder = fullfile(assessmentFolder, "statistical_maps");

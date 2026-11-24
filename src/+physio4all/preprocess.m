@@ -36,15 +36,28 @@ meanBoldFile = fullfile(workFolder, "mean" + boldName + boldExtension);
 
 derivativeOutputs = expectedDerivativeOutputs( ...
     derivativeFolder, boldName, boldExtension, options.SmoothingFwhm);
-if isComplete(derivativeOutputs, options.SmoothingFwhm)
+signature.bold = physio4all.input_signature(runInfo.boldFile);
+signature.json = physio4all.input_signature(runInfo.boldJsonFile);
+signature.nVolumes = runInfo.nVolumes;
+signature.settings = example.preprocessing;
+signature.smoothingFwhm = options.SmoothingFwhm;
+if isComplete(derivativeOutputs, options.SmoothingFwhm, signature)
+    fprintf('Reusing preprocessing: %s\n', derivativeFolder);
     outputs = derivativeOutputs;
     outputs.workFolder = workFolder;
     outputs.workingBoldFile = string(runInfo.boldFile);
+    outputs.reused = true;
     return
 end
 
 if ~isfile(workingBoldFile)
-    copyfile(runInfo.boldFile, workingBoldFile);
+    if isfield(runInfo, "fullNVolumes") && runInfo.nVolumes < runInfo.fullNVolumes
+        scans = arrayfun(@(k) sprintf('%s,%d', runInfo.boldFile, k), ...
+            (1:runInfo.nVolumes)', UniformOutput=false);
+        spm_file_merge(char(scans), char(workingBoldFile), 0, runInfo.repetitionTime);
+    else
+        copyfile(runInfo.boldFile, workingBoldFile);
+    end
 end
 if ~isfile(workingJsonFile)
     copyfile(runInfo.boldJsonFile, workingJsonFile);
@@ -75,9 +88,12 @@ outputs = derivativeOutputs;
 outputs.workingBoldFile = string(workingBoldFile);
 outputs.workFolder = workFolder;
 outputs.glmBoldFile = derivativeOutputs.glmBoldFile;
+outputs.reused = false;
 
 checkpoint.runInfo = runInfo;
 checkpoint.smoothingFwhm = options.SmoothingFwhm;
+checkpoint.settings = example.preprocessing;
+checkpoint.signature = signature;
 checkpoint.completedAt = datetime("now");
 checkpoint.stage = "preprocess";
 spm_jsonwrite(char(derivativeOutputs.checkpointFile), checkpoint, ...
@@ -119,7 +135,7 @@ else
 end
 end
 
-function tf = isComplete(outputs, smoothingFwhm)
+function tf = isComplete(outputs, smoothingFwhm, signature)
 requiredFiles = [ ...
     outputs.realignedBoldFile, outputs.motionFile, ...
     outputs.meanBoldFile, outputs.boldJsonFile, outputs.checkpointFile];
@@ -127,6 +143,15 @@ if any(smoothingFwhm > 0)
     requiredFiles(end + 1) = outputs.smoothedBoldFile;
 end
 tf = all(isfile(requiredFiles));
+if tf
+    checkpoint = jsondecode(fileread(outputs.checkpointFile));
+    if ~isfield(checkpoint, "signature") || ...
+            ~isequal(jsonencode(checkpoint.signature), jsonencode(signature))
+        error("physio4all:PreprocessingCacheMismatch", ...
+            "Preprocessing inputs/settings differ or provenance is missing. " + ...
+            "Use a fresh output folder or OverwritePreprocessing=true in the pipeline.");
+    end
+end
 end
 
 function promoteFile(sourceFile, destinationFile)

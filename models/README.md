@@ -20,8 +20,9 @@ GLMs; they do not include a task design or implement connectivity analysis.
 | model-006 | yes | yes | no | no |
 
 The original model-001 batch already enabled HRV, despite its description
-mentioning only RETROICOR and RVT. Its numerical settings and existing output
-locations are preserved. Motion censoring is now disabled across all models.
+mentioning only RETROICOR and RVT. Its physiological orders/delays are
+preserved. Motion censoring is now disabled across all models, and new runs
+use configuration-keyed output folders.
 RETROICOR orders remain cardiac 3, respiratory 4,
 interaction 1; HRV/RVT response-function delays remain zero and RVT uses
 the Hilbert method.
@@ -120,11 +121,21 @@ results = physio4all_run("fastfmri", Subject="sub-01", Run=1, ...
 ```
 
 Use `Stages="compute_physio"` to stop after preprocessing and regressors.
-All non-default models isolate their regressor caches in `physio/<model>/`.
-The model-001 legacy cache is kept in `physio/`. GLM and assessment folders
-are already model-specific. If modifying a configuration after a run, use
-fresh derivative/work roots or explicitly recompute it with `Overwrite=true`;
-existing pipeline caches are not a configuration-versioning system.
+`QuickCheck=true` limits any model/dataset to the first 100 volumes;
+`QuickCheckVolumes` changes the limit. Quick-check outputs use their own
+run namespace. See the main README for a complete invocation using TEMP
+work and derivative roots.
+
+Preprocessed images use a shared input/settings cache beneath `preproc/`.
+WM/CSF mask preparation is shared there too. Compatible models reuse these
+images and masks; the PCA regressors themselves remain model-specific.
+PhysIO/GLM/assessment folders include an analysis-configuration key so that
+changing component counts, censoring, or other model settings selects new
+downstream outputs. Keys identify inputs by path, size, and modification
+time rather than reading/hash-checking entire imaging files.
+`Overwrite=false` reuses compatible results. `Overwrite=true` recomputes
+downstream analysis while preserving preprocessing;
+`OverwritePreprocessing=true` recomputes preprocessing and downstream stages.
 For a persistent new configuration, copy a model to the next unused ID,
 update its `model.id` and settings, and add it to the catalog above.
 
@@ -137,7 +148,6 @@ all models and account for differing model complexity in the comparison.
 The previously processed local examples used older directory names:
 `derivatives/openneuro_ds004645/` and `derivatives/brainhack23_ds004808/`.
 Current canonical IDs are `openneuro_ds004645_fastfmri` and
-`openneuro_ds004808_brainhack23`. A new run does not automatically discover
-checkpoints stored under the old names. Review/copy the appropriate complete
-preprocessing checkpoint into the current layout if reuse is intended;
-do not point different model runs at one shared regressor cache.
+`openneuro_ds004808_brainhack23`. Older unkeyed checkpoints are retained as
+historical results. New pipeline runs use signature-based cache folders and
+do not automatically import checkpoints lacking settings provenance.

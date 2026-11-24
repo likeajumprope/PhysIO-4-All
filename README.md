@@ -153,10 +153,50 @@ results = physio4all_run("brainhack23", ...
 ```
 
 `WorkRoot` can point to any writable scratch location. `Overwrite=true`
-recomputes the requested stages instead of reusing their checkpoints. The
+recomputes PhysIO, GLM, and assessment stages while reusing compatible
+preprocessing. Set `OverwritePreprocessing=true` to force preprocessing too
+(which also recomputes downstream stages). The
 remaining options above are the defaults and are shown explicitly to make the
 run configuration clear. Unless `Stages` is specified, the pipeline runs
 preprocessing, PhysIO computation, GLM estimation, and assessment.
+
+### Quick checks and shared preprocessing
+
+Use `QuickCheck=true` with any dataset/model to run the first 100 volumes
+(or all volumes if the run is shorter). `QuickCheckVolumes=150` changes
+the limit. The default `QuickCheck=false` processes the full run.
+
+```matlab
+results = physio4all_run("fastfmri", Model="model-002", QuickCheck=true, ...
+    WorkRoot="C:\Users\kasperla\TEMP\physio4all\work", ...
+    DerivativesRoot="C:\Users\kasperla\TEMP\physio4all\derivatives");
+```
+
+Quick-check outputs use a separate `run-01_quickcheck-0100/` namespace,
+including their logs, images, regressors, GLMs, and assessments. Realignment
+and smoothing only process the excerpt. T1 segmentation still processes
+the full anatomical image. Recorded physiology is synchronized against the
+complete acquisition before selecting the first N scan rows, so end-aligned
+recordings stay aligned. These short runs check execution; their statistics
+and estimated PCA components are not a substitute for full-run analysis.
+
+`Overwrite=false` is the default. Models with identical BOLD inputs,
+volume counts, and preprocessing settings reuse the same images, regardless
+of model ID. Cache identifiers include input path, file size/modification
+time, preprocessing settings (including smoothing), and SPM location.
+Changing these selects a different cache. The checkpoint also verifies
+its input/settings signature before reuse. A changed model configuration
+selects separate downstream PhysIO/GLM/assessment caches.
+
+WM/CSF preparation is stored with the shared preprocessing, keyed by T1w
+identity, mask thresholds, and erosion settings. The two aCompCor models
+reuse these masks when compatible; component selection is computed per
+model. Changing only PC count does not rerun segmentation/coregistration.
+
+`Stages="fit_glm"` or `Stages="assess_physio"` still ensures prerequisite
+outputs exist, reusing compatible checkpoints. There is no need to skip
+preprocessing manually. Existing results from before signature-based
+caching remain available, but are not automatically trusted for reuse.
 
 Pipeline output is also appended incrementally to a predictable diary:
 

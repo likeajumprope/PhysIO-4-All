@@ -4,6 +4,11 @@ function results = physio4all_run(exampleID, options)
 %   results = physio4all_run("brainhack23")
 %   results = physio4all_run("fastfmri", ...
 %       Subject="sub-46", Run=1)
+%   results = physio4all_run("fastfmri", Model="model-002", QuickCheck=true)
+%   processes the first 100 volumes in a separate quick-check output folder.
+%   QuickCheckVolumes changes this limit. Overwrite=false reuses compatible
+%   outputs. Overwrite=true refits analysis; OverwritePreprocessing=true
+%   also recomputes preprocessing.
 %
 % See also physio4all.run, physio4all_download_example_data
 
@@ -18,6 +23,9 @@ arguments
     options.WorkRoot {mustBeTextScalar} = ""
     options.DerivativesRoot {mustBeTextScalar} = ""
     options.Overwrite (1,1) logical = false
+    options.OverwritePreprocessing (1,1) logical = false
+    options.QuickCheck (1,1) logical = false
+    options.QuickCheckVolumes (1,1) double {mustBeInteger, mustBePositive, mustBeFinite} = 100
     options.EnableDiary (1,1) logical = true
     options.LogFile {mustBeTextScalar} = ""
     options.ComputeTsnrGains (1,1) logical = true

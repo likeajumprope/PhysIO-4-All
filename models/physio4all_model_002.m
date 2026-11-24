@@ -8,7 +8,8 @@ model = physio4all_model_001();
 model.id = "model-002";
 model.name = "PhysIO aCompCor (CONN Toolbox Style) with five WM and five CSF regressors";
 model.description = "Anatomical noise-ROI PCA and movement regressors, " + ...
-    "with RETROICOR, RVT, and HRV disabled.";
+    "with RETROICOR, RVT, and HRV disabled. CONN includes scrubbing " + ...
+    "by default; this model currently has scrubbing disabled.";
 model.physio.method = "acompcor";
 model.physio.includeRetroicor = false;
 model.physio.includeRvt = false;

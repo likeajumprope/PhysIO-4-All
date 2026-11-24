@@ -28,6 +28,7 @@ if all(isfile(roiFiles)) && isfile(checkpointFile)
     previous = load(checkpointFile, "signature");
     if isequal(previous.signature, signature)
         validateMasks(roiFiles, preprocessing.realignedBoldFile, settings);
+        fprintf('Reusing WM/CSF masks: %s\n', folder);
         return
     end
 end
