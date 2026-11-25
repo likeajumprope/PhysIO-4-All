@@ -9,6 +9,7 @@ function results = physio4all_run(exampleID, options)
 %   QuickCheckVolumes changes this limit. OverwriteFrom="none" reuses
 %   compatible outputs. Select a stage to force it and subsequent stages
 %   within the requested pipeline; "all" is an alias for "preprocess".
+%   NormalizeMaps=true exports 3-D assessment maps on the SPM MNI grid.
 %
 % See also physio4all.run, physio4all_download_example_data
 
@@ -28,6 +29,7 @@ arguments
     options.EnableDiary (1,1) logical = true
     options.LogFile {mustBeTextScalar} = ""
     options.ComputeTsnrGains (1,1) logical = true
+    options.NormalizeMaps (1,1) logical = false
     options.Verbose (1,1) logical = true
 end
 

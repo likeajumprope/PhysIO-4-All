@@ -19,7 +19,7 @@ if ~overwrite && isfile(checkpoint)
 end
 nativeFolder = fullfile(folder, generation);
 tissueNames = ["c2T1w.nii"; "c3T1w.nii"];
-requiredImages = [tissueNames; "mT1w.nii"];
+requiredImages = [tissueNames; "mT1w.nii"; "T1w_seg8.mat"];
 if generation == "" || ~all(isfile(fullfile(nativeFolder, requiredImages)))
     % SPM writes beside its input. A private generation protects the raw T1
     % and keeps older runs usable if an explicit rebuild is interrupted.
@@ -42,6 +42,7 @@ else
 end
 anatomy.tissueFiles = fullfile(nativeFolder, tissueNames);
 anatomy.biasCorrectedT1 = fullfile(nativeFolder, "mT1w.nii");
+anatomy.segmentationFile = fullfile(nativeFolder, "T1w_seg8.mat");
 
 % BOLD realignment only registers volumes within a run. Estimate the
 % between-modality transform from the whole bias-corrected T1. spm_coreg
@@ -65,6 +66,20 @@ else
     pending = string(tempname(coregFolder)) + ".mat";
     save(pending, "t1ToBold", "registration");
     movefile(pending, anatomy.transformFile, 'f');
+end
+% A small view on the mean-BOLD grid makes alignment inspectable while the
+% original high-resolution T1 and its subject-space header remain reusable.
+anatomy.alignedT1 = replace(anatomy.transformFile, ".mat", "_T1w.nii");
+if ~isfile(anatomy.alignedT1) || overwrite
+    transform = load(anatomy.transformFile, "t1ToBold");
+    source = spm_vol(char(anatomy.biasCorrectedT1));
+    source.mat = transform.t1ToBold * source.mat;
+    ref = spm_vol(char(preprocessing.meanBoldFile));
+    pending = string(tempname(coregFolder)) + ".nii";
+    output = struct('fname', char(pending), 'dim', ref.dim, 'mat', ref.mat, ...
+        'dt', [spm_type('float32') 0], 'pinfo', [1;0;0]);
+    spm_imcalc(source, output, 'i1', {0,0,1,'float32'});
+    movefile(pending, anatomy.alignedT1, 'f');
 end
 end
 

@@ -214,16 +214,56 @@ Changing these selects a different cache. The checkpoint also verifies
 its input/settings signature before reuse. A changed model configuration
 selects separate downstream PhysIO/GLM/assessment caches.
 
-For aCompCor, `Stages="preprocess"` also returns
-`results.preprocess.anatomy.tissueFiles` (native WM, CSF) and
-`results.preprocess.anatomy.transformFile` (T1w to mean BOLD).
+For every model with a subject T1w, `Stages="preprocess"` also returns
+`results.preprocess.anatomy.tissueFiles` (native WM, CSF),
+`results.preprocess.anatomy.transformFile` (T1w to mean BOLD), and
+`results.preprocess.anatomy.alignedT1` (bias-corrected T1 sampled on the
+mean-BOLD grid for checking the registration).
 The subject's `anat/` derivative holds the segmentation shared across runs
 and excerpts. Each run caches its own alignment under `preproc/<key>/coreg/`.
 Changing a threshold or erosion setting only rebuilds the masks and dependent
 model outputs. Changing the PC count can reuse the masks as well.
-`OverwriteFrom="preprocess"` explicitly rebuilds the anatomy for an aCompCor
+`OverwriteFrom="preprocess"` explicitly rebuilds the anatomy for a
 run. The first run after upgrading creates a subject-level segmentation
-checkpoint. Recording-based models only require BOLD preprocessing.
+checkpoint. Recording-based models can also run on datasets without a T1w.
+
+### Standard-space first-level maps
+
+Set `NormalizeMaps=true` on a pipeline run that includes assessment to
+export 3-D result maps to the MNI grid of the pinned SPM tissue template.
+The default is false. This option requires a subject T1w. It can be enabled
+on a completed analysis with `OverwriteFrom="none"`.
+
+```matlab
+results = physio4all_run("fastfmri", Subject="sub-01", Model="model-001", ...
+    NormalizeMaps=true, WorkRoot="C:\Users\kasperla\TEMP\physio4all\work", ...
+    DerivativesRoot="C:\Users\kasperla\TEMP\physio4all\derivatives");
+maps = results.assessment.standardSpace;
+```
+
+SPM writes the subject deformation from its saved segmentation parameters.
+The export composes this deformation with the run's rigid registration and
+samples each map once, with trilinear interpolation and no modulation or
+additional smoothing. The GLM analysis mask uses nearest neighbour.
+The 4-D BOLD series and fitted GLM stay in native space.
+The exported files are under the run's `standard_space/<model>/<key>/` folder.
+
+* `maps.effectFiles` and `maps.effectNames` identify signed, unthresholded
+  T-contrast estimates (`con_*.nii`). For an ordinary second-level model,
+  select the same scientific contrast and scaling for each participant.
+* `maps.statisticFiles` contains normalized T/F statistics for display.
+  The supplied nuisance models generate omnibus F contrasts, so their
+  signed-effect list can be empty. Individual aCompCor PC coefficients
+  also lack a consistent sign and component identity across participants.
+* `maps.tsnrFiles` contains the requested tSNR and gain summaries. A paired
+  between-model comparison of the same tSNR metric measures a denoising
+  difference. Interpret in-sample gains in light of model degrees of freedom.
+* `maps.maskFile` identifies analyzed voxels. Check each registration and
+  define common coverage before group inference, particularly for the
+  partial-coverage fast-fMRI acquisition.
+
+See [SPM group analysis](https://www.fil.ion.ucl.ac.uk/spm/docs/wikibooks/Group_Analysis/)
+and [a published native-space first-level example](https://doi.org/10.1212/WNL.0000000000200667).
 
 `Stages="fit_glm"` or `Stages="assess_physio"` still ensures prerequisite
 outputs exist, reusing compatible checkpoints. There is no need to skip
@@ -255,7 +295,7 @@ flowchart TD
     subgraph inputs["Input data"]
         bold["fMRI BOLD images<br/>NIfTI time series"]
         recordings["Physiological recordings<br/>Cardiac and respiratory signals"]
-        anatomy["T1w anatomy<br/>WM and CSF masks for aCompCor"]
+        anatomy["Subject T1w"]
         timing["Scan timing and acquisition metadata<br/>Triggers / BIDS timing, TR, volume and slice counts"]
     end
 
@@ -264,7 +304,8 @@ flowchart TD
     preprocess -->|Processed BOLD| glm["3. fit_glm<br/>Fit nuisance-only SPM GLM"]
     preprocess -->|Motion and unsmoothed BOLD| physio["2. compute_physio<br/>Model-specific physiological regressors<br/>Recordings or anatomical noise-ROI PCA, plus movement"]
     recordings --> physio
-    anatomy --> physio
+    anatomy -->|Segment and register to mean BOLD| preprocess
+    preprocess -->|Tissue maps and transform for aCompCor| physio
     timing --> physio
     timing -->|TR| glm
     physio -->|multiple_regressors.txt| glm
@@ -272,6 +313,7 @@ flowchart TD
     glm -->|Estimated SPM model| assess
     preprocess -->|Mean BOLD for overlays| assess
     assess --> reports["Assessment outputs<br/>PDF / PNG statistical maps<br/>NIfTI tSNR and gain maps when enabled"]
+    assess -->|NormalizeMaps=true| standard["3-D maps and analysis mask in MNI space"]
 ```
 
 Solid arrows show data flow; the dotted arrow shows input resolution. The
@@ -283,7 +325,7 @@ starts the diary, and coordinates four stages:
 
 | Stage | Main function | Broad purpose | Durable output |
 |---|---|---|---|
-| `preprocess` | `physio4all.preprocess` | Copy the BOLD image into disposable work storage, realign/reslice it, and optionally smooth it. | Realigned/smoothed BOLD images, mean image, motion parameters, and checkpoint. |
+| `preprocess` | `physio4all.preprocess`, `physio4all.preprocess_anatomy` | Realign BOLD, optionally smooth it, and register available T1w anatomy to mean BOLD. | Functional images, motion parameters, native tissue maps, rigid transform, and aligned T1w. |
 | `compute_physio` | `physio4all.compute_physio` | Read the physiological logs and create the configured PhysIO nuisance regressors. | `physio.mat`, `multiple_regressors.txt`, BIDS physiology files, and PhysIO figures. |
 | `fit_glm` | `physio4all.fit_glm` | Specify and estimate a nuisance-only SPM first-level model using the processed BOLD data and PhysIO regressors. | `SPM.mat`, beta images, residual variance, mask, and contrast images. |
 | `assess_physio` | `physio4all.assess_physio` | Create PhysIO contrasts and export visual statistical-map and tSNR comparisons. | PDF/PNG statistical maps, NIfTI tSNR maps, and assessment checkpoints. |

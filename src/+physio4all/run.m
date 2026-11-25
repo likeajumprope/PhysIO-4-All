@@ -17,6 +17,7 @@ arguments
     options.EnableDiary (1,1) logical = true
     options.LogFile {mustBeTextScalar} = ""
     options.ComputeTsnrGains (1,1) logical = true
+    options.NormalizeMaps (1,1) logical = false
     options.Verbose (1,1) logical = true
 end
 
@@ -55,6 +56,10 @@ assessmentFolder = fullfile(derivativeRunFolder, "assessment", ...
     model.id);
 
 plan = physio4all.plan_stages(options.Stages, options.OverwriteFrom);
+if options.NormalizeMaps && ~plan.required(4)
+    error("physio4all:NormalizationStage", ...
+        "NormalizeMaps requires the assess_physio stage, where contrasts are created.");
+end
 
 logFile = string(options.LogFile);
 if options.EnableDiary
@@ -78,6 +83,10 @@ initializeDependencies(example.repoRoot);
 
 runInfo = physio4all.resolve_files( ...
     example, subjectID, options.Run, dataRoot);
+if options.NormalizeMaps && ~isfield(runInfo, "anatomicalFile")
+    error("physio4all:NormalizationAnatomy", ...
+        "Standard-space export requires one uncompressed subject T1w image.");
+end
 runInfo.fullNVolumes = runInfo.nVolumes;
 if options.QuickCheck
     runInfo.nVolumes = min(runInfo.fullNVolumes, options.QuickCheckVolumes);
@@ -100,7 +109,8 @@ analysisSignature.physio = example.physio;
 analysisSignature.cardiac = physio4all.input_signature(runInfo.cardiacFile);
 analysisSignature.respiration = physio4all.input_signature(runInfo.respirationFile);
 analysisSignature.timing = physio4all.input_signature(runInfo.scanTimingFile);
-if isfield(runInfo, "anatomicalFile")
+usesTissueRegressors = isfield(example.physio, "method") && example.physio.method == "acompcor";
+if usesTissueRegressors
     analysisSignature.anatomical = physio4all.input_signature(runInfo.anatomicalFile);
 end
 analysisKey = physio4all.cache_key(analysisSignature);
@@ -120,8 +130,7 @@ if plan.required(1)
         runInfo, example, workFolder, preprocessFolder, ...
         Overwrite=plan.overwrite(1), ...
         SmoothingFwhm=model.preprocessing.smoothingFwhm);
-    % A recording-based model needs only BOLD preprocessing. An aCompCor
-    % preprocessing-only run also delivers native tissue maps and alignment.
+    % Align anatomy for every model with a T1, including preprocess-only runs.
     if isfield(runInfo, "anatomicalFile")
         subjectFolder = fullfile(derivativesRoot, example.id, subjectID);
         preprocessOutputs.anatomy = physio4all.preprocess_anatomy( ...
@@ -132,7 +141,7 @@ end
 if plan.required(2)
     physioSignature.analysis = analysisKey;
     physioSignature.preprocessing = physio4all.input_signature(preprocessOutputs.checkpointFile);
-    if isfield(preprocessOutputs, "anatomy")
+    if usesTissueRegressors
         % Replacing the anatomical inputs also invalidates a cached PCA fit.
         anatomy = preprocessOutputs.anatomy;
         physioSignature.transform = physio4all.input_signature(anatomy.transformFile);
@@ -163,6 +172,11 @@ if plan.required(4)
         example, assessmentFolder, ...
         ComputeTsnrGains=options.ComputeTsnrGains, ...
         Overwrite=plan.overwrite(4));
+    if options.NormalizeMaps
+        assessmentOutputs.standardSpace = physio4all.normalize_maps( ...
+            preprocessOutputs.anatomy, glmOutputs, assessmentOutputs, options.ComputeTsnrGains, ...
+            fullfile(derivativeRunFolder, "standard_space", model.id));
+    end
 end
 
 results.example = example;
