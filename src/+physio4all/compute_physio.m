@@ -22,8 +22,8 @@ physioFile = fullfile(outputFolder, "physio.mat");
 regressorsFile = fullfile(outputFolder, "multiple_regressors.txt");
 
 if ~isfile(physioFile) || ~isfile(regressorsFile)
-    if isfield(example.physio, "method") && ...
-            example.physio.method == "acompcor"
+    usesTissues = physio4all.uses_acompcor(example.physio);
+    if usesTissues
         sharedMasks = physio4all.prepare_noise_rois(preprocessOutputs, example.physio);
         % PhysIO writes its final ROIs beside its input masks and names PCA
         % loading maps after them. Keep these diagnostics analysis-specific.
@@ -41,7 +41,7 @@ if ~isfile(physioFile) || ~isfile(regressorsFile)
         runInfo, preprocessOutputs, example, outputFolder);
     isRecordingExcerpt = isfield(runInfo, "fullNVolumes") && ...
         runInfo.nVolumes < runInfo.fullNVolumes && ...
-        ~(isfield(example.physio, "method") && example.physio.method == "acompcor");
+        ~usesTissues;
     if isRecordingExcerpt
         % Synchronize against the complete acquisition, particularly for
         % vendors aligned to its end. Then select the FIRST N scan rows.

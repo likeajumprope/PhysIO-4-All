@@ -24,6 +24,10 @@ external/
 
 Note: `physio4all_setup.m` adds the pinned SPM and PhysIO copies under `external/` to the MATLAB path and puts PhysIO as a link/copy to `external/spm/toolbox/PhysIO` to work with the SPM Batch Editor.
 
+The pipeline uses Image Processing Toolbox to read BOLD headers with
+`niftiinfo`. PhysIO's small-ROI PCA fallback also uses Statistics and
+Machine Learning Toolbox.
+
 ## Installation
 
 ### Simple Installation
@@ -119,8 +123,8 @@ settings consistent while varying the physiological regressors:
 
 All models retain six motion regressors. Motion censoring is off by default;
 set `model.physio.movementCensoringEnabled = true` in a configuration to enable
-its configured outlier-regressor method and threshold. Existing outputs must
-be recomputed to reflect a changed censoring setting.
+its configured outlier-regressor method and threshold. Changing this setting
+selects a new regressor and GLM cache automatically.
 
 For example, select `Model="model-002"` or `Model="model-003"` in the call
 above. Both aCompCor variants run entirely in PhysIO and use unsmoothed,
@@ -145,7 +149,7 @@ results = physio4all_run("brainhack23", ...
     Subject="sub-46", ...
     Run=1, ...
     Model="model-001", ...
-    WorkRoot="C:\Users\kasperla\TEMP\physio4all\work", ...
+    WorkRoot=fullfile(tempdir, "physio4all", "work"), ...
     OverwriteFrom="compute_physio", ...
     EnableDiary=true, ...
     ComputeTsnrGains=true, ...
@@ -180,10 +184,8 @@ The previous prototype's boolean `Overwrite` and `OverwritePreprocessing`
 options are replaced by this single pipeline option. Individual stage
 functions still use internal boolean overwrite controls.
 
-The
-remaining options above are the defaults and are shown explicitly to make the
-run configuration clear. Unless `Stages` is specified, the pipeline runs
-preprocessing, PhysIO computation, GLM estimation, and assessment.
+Unless `Stages` is specified, the pipeline runs preprocessing, PhysIO
+computation, GLM estimation, and assessment.
 
 ### Quick checks and shared preprocessing
 
@@ -193,8 +195,8 @@ the limit. The default `QuickCheck=false` processes the full run.
 
 ```matlab
 results = physio4all_run("fastfmri", Model="model-002", QuickCheck=true, ...
-    WorkRoot="C:\Users\kasperla\TEMP\physio4all\work", ...
-    DerivativesRoot="C:\Users\kasperla\TEMP\physio4all\derivatives");
+    WorkRoot=fullfile(tempdir, "physio4all", "work"), ...
+    DerivativesRoot=fullfile(pwd, "derivatives"));
 ```
 
 Quick-check outputs use a separate `run-01_quickcheck-0100/` namespace,
@@ -257,8 +259,8 @@ on a completed analysis with `OverwriteFrom="none"`.
 
 ```matlab
 results = physio4all_run("fastfmri", Subject="sub-01", Model="model-001", ...
-    NormalizeMaps=true, WorkRoot="C:\Users\kasperla\TEMP\physio4all\work", ...
-    DerivativesRoot="C:\Users\kasperla\TEMP\physio4all\derivatives");
+    NormalizeMaps=true, WorkRoot=fullfile(tempdir, "physio4all", "work"), ...
+    DerivativesRoot=fullfile(pwd, "derivatives"));
 maps = results.assessment.standardSpace;
 ```
 
@@ -316,13 +318,13 @@ flowchart TD
 
     subgraph inputs["Input data"]
         bold["fMRI BOLD images<br/>NIfTI time series"]
-        recordings["Physiological recordings<br/>Cardiac and respiratory signals"]
-        anatomy["Subject T1w"]
+        recordings["Cardiac and respiratory recordings<br/>For recording-based models"]
+        anatomy["Subject T1w, when available"]
         timing["Scan timing and acquisition metadata<br/>Triggers / BIDS timing, TR, volume and slice counts"]
     end
 
     config -.-> inputs
-    bold --> preprocess["1. preprocess<br/>Realign / reslice; optionally smooth"]
+    bold --> preprocess["1. preprocess<br/>Realign and optionally smooth BOLD<br/>Segment T1w or unsmoothed run mean"]
     preprocess -->|Processed BOLD| glm["3. fit_glm<br/>Fit nuisance-only SPM GLM"]
     preprocess -->|Motion and unsmoothed BOLD| physio["2. compute_physio<br/>Model-specific physiological regressors<br/>Recordings or anatomical noise-ROI PCA, plus movement"]
     recordings --> physio
@@ -348,8 +350,8 @@ starts the diary, and coordinates four stages:
 | Stage | Main function | Broad purpose | Durable output |
 |---|---|---|---|
 | `preprocess` | `physio4all.preprocess`, `physio4all.preprocess_anatomy` | Realign BOLD, optionally smooth it, and segment the T1w or unsmoothed mean EPI. | Functional images, motion parameters, tissue maps, rigid display transform and report background. |
-| `compute_physio` | `physio4all.compute_physio` | Read the physiological logs and create the configured PhysIO nuisance regressors. | `physio.mat`, `multiple_regressors.txt`, BIDS physiology files, and PhysIO figures. |
-| `fit_glm` | `physio4all.fit_glm` | Specify and estimate a nuisance-only SPM first-level model using the processed BOLD data and PhysIO regressors. | `SPM.mat`, beta images, residual variance, mask, and contrast images. |
+| `compute_physio` | `physio4all.compute_physio` | Build regressors from recordings or from unsmoothed BOLD in WM/CSF masks, plus the configured motion terms. | `physio.mat`, `multiple_regressors.txt`, and model-specific diagnostics. |
+| `fit_glm` | `physio4all.fit_glm` | Specify and estimate a nuisance-only SPM first-level model using the processed BOLD data and PhysIO regressors. | `SPM.mat`, beta images, residual variance, resels per voxel, and analysis mask. |
 | `assess_physio` | `physio4all.assess_physio` | Create PhysIO contrasts and export visual statistical-map and tSNR comparisons. | PDF/PNG statistical maps, NIfTI tSNR maps, and assessment checkpoints. |
 
 The default `Stages` value runs all four stages. A request for a later stage
@@ -358,16 +360,10 @@ completed stages are reused. A stage-valued `OverwriteFrom` forces that stage
 and the downstream required stages. The returned `results` struct records the resolved
 configuration, roots, and outputs from every stage that ran or was reused.
 
-Checkpoints act as completion markers along this sequence: they are written
-only after the output set they describe has been produced successfully. On a
-later invocation with `OverwriteFrom="none"`, the pipeline uses these markers
-together with the required stage outputs to reuse completed work and continue
-with the next requested step. A missing checkpoint or required output prevents
-a partially completed step from being treated as resumable. These readable
-JSON markers live beside the durable stage outputs below
-`derivatives/<example>/<subject>/run-<NN>/` and use the
-`*_checkpoint.json` filename pattern. Checkpoints for model-specific outputs
-are nested one level further below `model-<NNN>`.
+On resume, preprocessing checks its input/settings signature and images.
+PhysIO requires its MAT file and a finite regressor matrix with one row per
+processed volume. The GLM checks the fitted model in `SPM.mat` and its image
+files. Assessment checks the files listed in each report and tSNR checkpoint.
 
 The pipeline keeps downloaded data unchanged:
 
@@ -390,7 +386,9 @@ to use, and which pipeline options are appropriate for that dataset.
 
 When adding an example, register its ID and mnemonic in
 [`physio4all_example_registry.m`](physio4all_example_registry.m), then add
-its file patterns, acquisition settings, and a short README under `examples/`.
+its `physio4all_example_<id>.m` configuration and a short README under
+`examples/<id>/`. The downloader calls `physio4all_download_example_data_<id>.m`
+with the destination `<DataRoot>/<source>/<accession>` (lowercase source).
 Reuse an existing model when only the dataset changes.
 
 ```text
@@ -403,7 +401,7 @@ PhysIO-4-All/
 |       |-- physio4all_example_openneuro_ds004645_fastfmri.m
 |       `-- README.md
 |-- models/                         Reusable analysis configurations
-|   |-- physio4all_model_001.m
+|   |-- physio4all_model_001.m … physio4all_model_006.m
 |   `-- README.md                   Model catalog and pipeline summaries
 |-- src/
 |   `-- +physio4all/                Reusable pipeline namespace
@@ -425,40 +423,31 @@ or reuse are written under `derivatives/`.
 
 ### Derivative output layout
 
-Outputs are organized first by dataset example, then subject and run. The GLM,
-assessment, and diary paths include the model ID so alternative model
-configurations remain distinguishable.
+The layout below is relative to `DerivativesRoot`. Each `<key>` identifies
+the inputs and settings of that particular stage. Quick checks append
+`_quickcheck-<NNNN>` to the run folder.
 
 ```text
 derivatives/
 `-- <example-id>/
     `-- <subject-id>/
+        |-- anat/<key>/<generation>/            Native segmentation and tissue maps
         `-- run-<NN>/
-            |-- preproc/
-            |   |-- r<bold>.nii                 Realigned BOLD image
-            |   |-- sr<bold>.nii                Smoothed BOLD image, when enabled
-            |   |-- mean<bold>.nii              Mean realigned image
-            |   |-- rp_<bold>.txt               Motion parameters
-            |   `-- preprocessing_checkpoint.json Human-readable resume checkpoint
-            |-- physio/
-            |   |-- physio.mat                  Complete PhysIO result structure
-            |   |-- multiple_regressors.txt     Regressors used by the GLM
-            |   |-- *_desc-preproc_physio.*     BIDS physiology export
-            |   `-- physio_*.fig                PhysIO diagnostic figures
-            |-- glm/
-            |   `-- model-<NNN>/
-            |       |-- SPM.mat
-            |       |-- beta_*.nii
-            |       |-- ResMS.nii
-            |       `-- spmF_*.nii / ess_*.nii
-            |-- assessment/
-            |   `-- model-<NNN>/
-            |       |-- statistical_maps/       PDF and PNG overlays
-            |       |-- tsnr_maps/              Raw, model, and ratio NIfTI maps
-            |       `-- *_checkpoint.json       Human-readable resume checkpoints
-            `-- logs/
-                `-- model-<NNN>/
-                    `-- *_pipeline.log           Incremental MATLAB diary
+            |-- preproc/<key>/
+            |   |-- r<bold>.nii, mean<bold>.nii, rp_<bold>.txt
+            |   |-- sr<bold>.nii                When smoothing is enabled
+            |   |-- coreg/                      Run alignment and display mean
+            |   |-- noise_rois/<key>/           Shared extraction masks for tissue PCA
+            |   `-- preprocessing_checkpoint.json
+            |-- physio/<key>/                   Model 001 regressors and diagnostics
+            |-- physio/<model>/<key>/           Other models' regressors and diagnostics
+            |-- glm/<model>/<key>/              SPM.mat and fitted images
+            |-- assessment/<model>/<key>/
+            |   |-- statistical_maps/           PDF and PNG overlays
+            |   |-- tsnr_maps/                  Raw, model, and ratio images
+            |   `-- *_checkpoint.json
+            |-- standard_space/<model>/<key>/   Optional MNI maps and normalization.mat
+            `-- logs/<model>/*_pipeline.log
 ```
 
 Preprocessing caches are shared at run level. PhysIO, GLM, and assessment
@@ -467,15 +456,8 @@ for the additional models; logs are model-specific. Input or
 configuration changes select new caches automatically. Use `OverwriteFrom`
 when intentionally recomputing otherwise compatible products.
 
-Each dataset example selects a default configuration from the top-level
-`models/` folder, such as `model-001`. The model catalog summarizes each
-pipeline, while its MATLAB configuration records preprocessing,
-PhysIO-regressor, GLM, and assessment parameters. GLM outputs, statistical
-maps, tSNR maps, and their checkpoint files are stored below folders named
-with that model ID.
-Changing analysis parameters therefore means adding a new configuration
-(for example, `model-002`) rather than encoding every parameter in filenames
-or overwriting results from another model.
+Each dataset selects a default model. To keep two configurations available
+by name for comparisons, give each its own ID in the [model catalog](models/README.md).
 
 
 ### Manual Installation

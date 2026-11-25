@@ -2,6 +2,12 @@ function anatomy = preprocess_anatomy(anatomicalFile, subjectFolder, preprocessi
 %PREPROCESS_ANATOMY Segment a T1w or the run mean and establish image geometry.
 %   T1w maps can be shared across runs. Mean-EPI maps belong to one run.
 
+arguments
+    anatomicalFile (1,1) string
+    subjectFolder (1,1) string
+    preprocessing (1,1) struct
+    overwrite (1,1) logical
+end
 useMean = anatomicalFile == preprocessing.meanBoldFile;
 name = "T1w";
 if useMean

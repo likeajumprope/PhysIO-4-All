@@ -3,23 +3,33 @@ function outputs = normalize_maps(anatomy, glm, assessment, includeTsnr, exportR
 %   Warp signed T-contrast estimates for conventional second-level models.
 %   Keep test statistics and denoising metrics identifiable as separate outputs.
 
+arguments
+    anatomy (1,1) struct
+    glm (1,1) struct
+    assessment (1,1) struct
+    includeTsnr (1,1) logical
+    exportRoot (1,1) string
+end
+
 data = load(glm.spmFile, "SPM");
 contrasts = data.SPM.xCon;
-effects = strings(0,1);
-effectNames = strings(0,1);
-statistics = strings(0,1);
-statisticNames = strings(0,1);
+effects = strings(numel(contrasts),1);
+statistics = strings(numel(contrasts),1);
+names = strings(numel(contrasts),1);
 for k = 1:numel(contrasts)
     con = contrasts(k);
+    names(k) = string(con.name);
     if strcmp(con.STAT, 'T') && ~isempty(con.Vcon)
-        effects(end+1,1) = fullfile(glm.outputFolder, spm_file(con.Vcon.fname, 'filename'));
-        effectNames(end+1,1) = string(con.name);
+        effects(k) = fullfile(glm.outputFolder, spm_file(con.Vcon.fname, 'filename'));
     end
     if ~isempty(con.Vspm)
-        statistics(end+1,1) = fullfile(glm.outputFolder, spm_file(con.Vspm.fname, 'filename'));
-        statisticNames(end+1,1) = string(con.name);
+        statistics(k) = fullfile(glm.outputFolder, spm_file(con.Vspm.fname, 'filename'));
     end
 end
+outputs.effectNames = names(effects ~= "");
+outputs.statisticNames = names(statistics ~= "");
+effects = effects(effects ~= "");
+statistics = statistics(statistics ~= "");
 metrics = strings(0,1);
 if includeTsnr
     metrics = assessment.tsnrFiles(:);
@@ -37,9 +47,7 @@ folder = fullfile(exportRoot, physio4all.cache_key(signature));
 [~, names, extensions] = fileparts(sources);
 warped = fullfile(folder, "w" + names + extensions);
 outputs.outputFolder = folder;
-outputs.effectNames = effectNames;
 outputs.effectFiles = warped(1:numel(effects));
-outputs.statisticNames = statisticNames;
 outputs.statisticFiles = warped(numel(effects)+(1:numel(statistics)));
 outputs.tsnrFiles = warped(numel(effects)+numel(statistics)+(1:numel(metrics)));
 outputs.maskFile = warped(end);

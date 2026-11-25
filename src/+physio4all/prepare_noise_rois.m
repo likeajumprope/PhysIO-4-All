@@ -2,6 +2,10 @@ function roiFiles = prepare_noise_rois(preprocessing, settings)
 %PREPARE_NOISE_ROIS Build WM and CSF masks from preprocessed tissue maps.
 %   Erode on the segmentation grid (T1w or mean EPI).
 
+arguments
+    preprocessing (1,1) struct
+    settings (1,1) struct
+end
 anatomy = preprocessing.anatomy;
 signature.transform = physio4all.input_signature(anatomy.transformFile);
 signature.wm = physio4all.input_signature(anatomy.tissueFiles(1));

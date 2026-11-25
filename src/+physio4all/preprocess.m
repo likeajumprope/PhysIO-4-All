@@ -3,7 +3,7 @@ function outputs = preprocess(runInfo, example, workFolder, ...
 %PREPROCESS Copy raw BOLD data and run lightweight SPM preprocessing.
 %   Realignment estimates motion between volumes of this functional run.
 %   Keep its unsmoothed series for tissue PCA and its mean as the anatomical
-%   registration target. The pipeline calls preprocess_anatomy when a T1w exists.
+%   registration target or segmentation source when there is no T1w.
 
 arguments
     runInfo (1,1) struct
@@ -145,8 +145,9 @@ requiredFiles = [ ...
 if any(smoothingFwhm > 0)
     requiredFiles(end + 1) = outputs.smoothedBoldFile;
 end
-tf = all(isfile(requiredFiles));
-if tf
+% Check provenance even when a missing image will need to be restored.
+% Other files in the folder may otherwise belong to different settings.
+if isfile(outputs.checkpointFile)
     checkpoint = jsondecode(fileread(outputs.checkpointFile));
     if ~isfield(checkpoint, "signature") || ...
             ~isequal(jsonencode(checkpoint.signature), jsonencode(signature))
@@ -155,6 +156,7 @@ if tf
             "Use a fresh output folder or OverwriteFrom=""preprocess"" in the pipeline.");
     end
 end
+tf = all(isfile(requiredFiles));
 end
 
 function promoteFile(sourceFile, destinationFile)

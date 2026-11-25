@@ -36,7 +36,8 @@ tsnrCheckpointFile = fullfile(assessmentFolder, ...
 
 structuralFile = preprocessOutputs.anatomy.displayMean;
 
-if ~isfile(reportCheckpointFile)
+reportFiles = completedFiles(reportCheckpointFile);
+if isempty(reportFiles)
     reportFiles = exportStatisticalMaps( ...
         glmOutputs.spmFile, physioOutputs.physioFile, structuralFile, ...
         example.assessment.tsnrContrastNames, statMapFolder, filePrefix);
@@ -46,12 +47,10 @@ if ~isfile(reportCheckpointFile)
     checkpoint.files = reportFiles;
     spm_jsonwrite(char(reportCheckpointFile), checkpoint, ...
         struct('indent', '  '));
-else
-    checkpoint = spm_jsonread(char(reportCheckpointFile));
-    reportFiles = string(checkpoint.files);
 end
 
-if options.ComputeTsnrGains && ~isfile(tsnrCheckpointFile)
+tsnrFiles = completedFiles(tsnrCheckpointFile);
+if options.ComputeTsnrGains && isempty(tsnrFiles)
     if ~isfolder(tsnrFolder)
         mkdir(tsnrFolder);
     end
@@ -79,11 +78,6 @@ if options.ComputeTsnrGains && ~isfile(tsnrCheckpointFile)
     checkpoint.files = tsnrFiles;
     spm_jsonwrite(char(tsnrCheckpointFile), checkpoint, ...
         struct('indent', '  '));
-elseif isfile(tsnrCheckpointFile)
-    checkpoint = spm_jsonread(char(tsnrCheckpointFile));
-    tsnrFiles = string(checkpoint.files);
-else
-    tsnrFiles = strings(0, 1);
 end
 
 outputs.outputFolder = assessmentFolder;
@@ -97,12 +91,28 @@ outputs.tsnrCheckpointFile = string(tsnrCheckpointFile);
 
 end
 
+function files = completedFiles(checkpointFile)
+files = strings(0,1);
+if isfile(checkpointFile)
+    checkpoint = spm_jsonread(char(checkpointFile));
+    recordedFiles = string(checkpoint.files);
+    if all(isfile(recordedFiles))
+        files = recordedFiles(:);
+    end
+end
+end
+
 function reportFiles = exportStatisticalMaps( ...
         spmFile, physioFile, structuralFile, contrastNames, ...
         outputFolder, filePrefix)
 if ~isfolder(outputFolder)
     mkdir(outputFolder);
 end
+% PhysIO appends pages to an existing PDF and SPM numbers existing PNGs.
+% Render in an empty folder so repairing a missing file is repeatable.
+renderFolder = string(tempname(outputFolder));
+mkdir(renderFolder);
+removeRenderFolder = onCleanup(@() rmdir(renderFolder, 's'));
 
 spmData = load(spmFile, "SPM");
 physioData = load(physioFile, "physio");
@@ -127,9 +137,9 @@ for contrastIndex = 1:nContrasts
             contrastName);
     end
     filenameLabel = makeFilenameLabel(contrastName);
-    pdfFile = fullfile(outputFolder, sprintf( ...
+    pdfFile = fullfile(renderFolder, sprintf( ...
         "%s_desc-%s_statmap.pdf", filePrefix, filenameLabel));
-    pngFile = fullfile(outputFolder, sprintf( ...
+    pngFile = fullfile(renderFolder, sprintf( ...
         "%s_desc-%s_statmap.png", filePrefix, filenameLabel));
 
     tapas_physio_overlay_contrasts( ...
@@ -139,8 +149,12 @@ for contrastIndex = 1:nContrasts
         'fileStructural', char(structuralFile));
     pngFile = string(spm_print( ...
         char(pngFile), 'Graphics', 'png'));
-    reportFiles(2 * contrastIndex - 1:2 * contrastIndex) = ...
-        [pdfFile; pngFile];
+    [~, pdfName, pdfExt] = fileparts(pdfFile);
+    [~, pngName, pngExt] = fileparts(pngFile);
+    reportFiles(2 * contrastIndex - 1) = moveMap(pdfFile, ...
+        fullfile(outputFolder, pdfName + pdfExt));
+    reportFiles(2 * contrastIndex) = moveMap(pngFile, ...
+        fullfile(outputFolder, pngName + pngExt));
 end
 end
 
@@ -167,7 +181,7 @@ function destinationFile = moveMap(sourceFile, destinationFile)
 sourceFile = string(sourceFile);
 destinationFile = string(destinationFile);
 if sourceFile ~= destinationFile
-    movefile(sourceFile, destinationFile);
+    movefile(sourceFile, destinationFile, 'f');
 end
 end
 

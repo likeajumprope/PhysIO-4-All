@@ -44,9 +44,9 @@ Even without censoring, physiological component counts and design rank can
 still change residual degrees of freedom. For identical input motion and
 thresholds, censoring would add the same outlier columns to each model.
 
-Existing cached outputs retain their original censoring. To evaluate this
-change, use fresh derivative roots or recompute PhysIO, GLM, and assessment
-outputs; do not reuse a GLM fitted with the previous regressor matrix.
+Changing the censoring setting selects a new PhysIO, GLM, and assessment
+cache in the same derivative root. Both configurations can reuse the same
+preprocessed images.
 
 ## aCompCor settings in PhysIO
 
@@ -135,8 +135,8 @@ results = physio4all_run("fastfmri", Subject="sub-01", Run=1, ...
 Use `Stages="compute_physio"` to stop after preprocessing and regressors.
 `QuickCheck=true` limits any model/dataset to the first 100 volumes;
 `QuickCheckVolumes` changes the limit. Quick-check outputs use their own
-run namespace. See the main README for a complete invocation using TEMP
-work and derivative roots.
+run namespace. See the [pipeline README](../README.md#quick-checks-and-shared-preprocessing)
+for an invocation with explicit work and derivative roots.
 
 Preprocessed images use a shared input/settings cache beneath `preproc/`.
 WM/CSF mask preparation is shared there too. Compatible models reuse these

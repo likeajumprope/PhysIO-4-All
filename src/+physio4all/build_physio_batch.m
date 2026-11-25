@@ -115,7 +115,7 @@ if isfield(settings, "includeHrv") && ~settings.includeHrv
     matlabbatch{1}.spm.tools.physio.model.hrv = struct('no', struct([]));
 end
 
-if isfield(settings, "method") && settings.method == "acompcor"
+if physio4all.uses_acompcor(settings)
     batch = matlabbatch{1}.spm.tools.physio;
     batch.log_files.cardiac = {''};
     batch.log_files.respiration = {''};

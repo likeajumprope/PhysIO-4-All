@@ -31,8 +31,6 @@ boldJsonFile = fullfile(funcFolder, boldJsonBaseName);
 assertFileExists(boldFile, "BOLD image");
 assertFileExists(boldJsonFile, "BOLD JSON sidecar");
 
-isACompCor = isfield(example.physio, "method") && ...
-    example.physio.method == "acompcor";
 cardiacFile = "";
 respirationFile = "";
 scanTimingFile = "";
@@ -43,7 +41,7 @@ if ~isempty(dir(fullfile(anatFolder, subjectID + "*_T1w.nii")))
         anatFolder, ...
         "^" + subjectID + ".*_T1w[.]nii$", "uncompressed T1w image"));
 end
-if ~isACompCor
+if ~physio4all.uses_acompcor(example.physio)
     cardiacFile = selectOneFile(physioFolder, ...
         sprintf(example.files.cardiac, runNumber), "cardiac log");
     respirationFile = selectOneFile(physioFolder, ...

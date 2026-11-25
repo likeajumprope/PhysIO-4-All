@@ -105,7 +105,7 @@ analysisSignature.physio = example.physio;
 analysisSignature.cardiac = physio4all.input_signature(runInfo.cardiacFile);
 analysisSignature.respiration = physio4all.input_signature(runInfo.respirationFile);
 analysisSignature.timing = physio4all.input_signature(runInfo.scanTimingFile);
-usesTissueRegressors = isfield(example.physio, "method") && example.physio.method == "acompcor";
+usesTissueRegressors = physio4all.uses_acompcor(example.physio);
 if usesTissueRegressors && isfield(runInfo, "anatomicalFile")
     analysisSignature.anatomical = physio4all.input_signature(runInfo.anatomicalFile);
 end
@@ -127,10 +127,7 @@ if plan.required(1)
         Overwrite=plan.overwrite(1), ...
         SmoothingFwhm=model.preprocessing.smoothingFwhm);
     % The mean EPI can use the same segmentation path as a subject T1w.
-    source = preprocessOutputs.meanBoldFile;
-    if isfield(runInfo, "anatomicalFile")
-        source = runInfo.anatomicalFile;
-    end
+    source = physio4all.select_anatomy_source(runInfo, preprocessOutputs);
     subjectFolder = fullfile(derivativesRoot, example.id, subjectID);
     preprocessOutputs.anatomy = physio4all.preprocess_anatomy( ...
         source, subjectFolder, preprocessOutputs, plan.overwrite(1));

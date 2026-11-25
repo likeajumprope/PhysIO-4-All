@@ -3,7 +3,7 @@ function results = physio4all_run(exampleID, options)
 %
 %   results = physio4all_run("brainhack23")
 %   results = physio4all_run("fastfmri", ...
-%       Subject="sub-46", Run=1)
+%       Subject="sub-01", Run=1)
 %   results = physio4all_run("fastfmri", Model="model-002", QuickCheck=true)
 %   processes the first 100 volumes in a separate quick-check output folder.
 %   QuickCheckVolumes changes this limit. OverwriteFrom="none" reuses
