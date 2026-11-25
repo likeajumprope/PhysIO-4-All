@@ -4,9 +4,8 @@
 
 Repository demonstrating the application of the PhysIO toolbox to a wide range of public fMRI datasets, with an emphasis on OpenNeuro.
 
-See [From BrainHack Prototype to PhysIO-4-All](DESIGN_EVOLUTION.md) for a short
-account of how the original BrainHack workflow was generalized into this
-repository.
+The [design history](DESIGN_EVOLUTION.md) traces the BrainHack origins and
+the decisions behind dataset reuse, model comparison, and spatial alignment.
 
 ## Dependencies
 
@@ -388,6 +387,11 @@ The `examples/` folder contains **code and documentation describing each
 example**, not the downloaded example data. An example definition specifies
 how to find the dataset files, which acquisition metadata and PhysIO settings
 to use, and which pipeline options are appropriate for that dataset.
+
+When adding an example, register its ID and mnemonic in
+[`physio4all_example_registry.m`](physio4all_example_registry.m), then add
+its file patterns, acquisition settings, and a short README under `examples/`.
+Reuse an existing model when only the dataset changes.
 
 ```text
 PhysIO-4-All/
