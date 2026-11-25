@@ -36,10 +36,9 @@ isACompCor = isfield(example.physio, "method") && ...
 cardiacFile = "";
 respirationFile = "";
 scanTimingFile = "";
-% Recording-only datasets remain usable without anatomy. When a T1w is
-% present all models share its registration to the run's mean BOLD.
+% The run mean is available as a segmentation fallback after realignment.
 anatFolder = fullfile(subjectRoot, "anat");
-if isACompCor || ~isempty(dir(fullfile(anatFolder, subjectID + "*_T1w.nii")))
+if ~isempty(dir(fullfile(anatFolder, subjectID + "*_T1w.nii")))
     runInfo.anatomicalFile = string(selectOneFile( ...
         anatFolder, ...
         "^" + subjectID + ".*_T1w[.]nii$", "uncompressed T1w image"));

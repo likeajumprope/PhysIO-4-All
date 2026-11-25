@@ -1,8 +1,14 @@
 function anatomy = preprocess_anatomy(anatomicalFile, subjectFolder, preprocessing, overwrite)
-%PREPROCESS_ANATOMY Segment the subject T1w and align it to the run's mean BOLD.
-%   Native WM and CSF probabilities are shared across runs and excerpts.
-%   Each mean BOLD needs its own rigid transform, shared by both tissues.
+%PREPROCESS_ANATOMY Segment a T1w or the run mean and establish image geometry.
+%   T1w maps can be shared across runs. Mean-EPI maps belong to one run.
 
+useMean = anatomicalFile == preprocessing.meanBoldFile;
+name = "T1w";
+if useMean
+    name = "meanBOLD";
+end
+anatomy.sourceType = name;
+anatomy.sourceFile = anatomicalFile;
 batch = segmentationBatch(anatomicalFile);
 signature.t1 = physio4all.input_signature(anatomicalFile);
 signature.template = physio4all.input_signature(fullfile(spm('Dir'), 'tpm', 'TPM.nii'));
@@ -18,17 +24,18 @@ if ~overwrite && isfile(checkpoint)
     generation = saved.generation;
 end
 nativeFolder = fullfile(folder, generation);
-tissueNames = ["c2T1w.nii"; "c3T1w.nii"];
-requiredImages = [tissueNames; "mT1w.nii"; "T1w_seg8.mat"];
+tissueNames = ["c2"; "c3"] + name + ".nii";
+requiredImages = [tissueNames; "m" + name + ".nii"; name + "_seg8.mat"];
 if generation == "" || ~all(isfile(fullfile(nativeFolder, requiredImages)))
     % SPM writes beside its input. A private generation protects the raw T1
     % and keeps older runs usable if an explicit rebuild is interrupted.
     nativeFolder = string(tempname(folder));
     mkdir(nativeFolder);
     [~, generation] = fileparts(nativeFolder);
-    t1Copy = fullfile(nativeFolder, "T1w.nii");
-    copyfile(anatomicalFile, t1Copy);
-    batch{1}.spm.spatial.preproc.channel.vols = cellstr(t1Copy);
+    sourceCopy = fullfile(nativeFolder, name + ".nii");
+    copyfile(anatomicalFile, sourceCopy);
+    fprintf('Segmenting %s: %s\n', name, anatomicalFile);
+    batch{1}.spm.spatial.preproc.channel.vols = cellstr(sourceCopy);
     spm_jobman('run', batch);
     if ~all(isfile(fullfile(nativeFolder, requiredImages)))
         error("physio4all:IncompleteSegmentation", ...
@@ -41,9 +48,45 @@ else
     fprintf('Reusing native WM/CSF probability maps: %s\n', nativeFolder);
 end
 anatomy.tissueFiles = fullfile(nativeFolder, tissueNames);
-anatomy.biasCorrectedT1 = fullfile(nativeFolder, "mT1w.nii");
-anatomy.segmentationFile = fullfile(nativeFolder, "T1w_seg8.mat");
+anatomy.biasCorrectedFile = fullfile(nativeFolder, "m" + name + ".nii");
+anatomy.segmentationFile = fullfile(nativeFolder, name + "_seg8.mat");
+if useMean
+    % Segmentation leaves the tissue maps on the source grid.
+    anatomy.sourceToBold = eye(4);
+    anatomy.transformFile = "";
+else
+    anatomy = registerT1(anatomy, preprocessing, overwrite);
+end
 
+% SPM stores a source-world to template-world affine in the segmentation.
+% Keep its nearest proper rotation; anchor the rigid frame at the native
+% point that the full affine maps to MNI [0 0 0].
+segment = load(anatomy.segmentationFile, "Affine");
+affine = segment.Affine / anatomy.sourceToBold;
+[u,~,v] = svd(affine(1:3,1:3));
+rotation = u * diag([1 1 sign(det(u*v'))]) * v';
+origin = affine \ [0;0;0;1];
+anatomy.boldToDisplay = [rotation, -rotation*origin(1:3); 0 0 0 1];
+
+% The report background and SPM results must use the same mm coordinates.
+% Change a copy of the small mean image's header; no voxel interpolation.
+displayKey = physio4all.cache_key(anatomy.boldToDisplay);
+displayFolder = fullfile(preprocessing.outputFolder, "coreg");
+if ~isfolder(displayFolder)
+    mkdir(displayFolder);
+end
+anatomy.displayMean = fullfile(displayFolder, displayKey + "_mean.nii");
+if ~isfile(anatomy.displayMean)
+    pending = string(tempname(displayFolder)) + ".nii";
+    copyfile(preprocessing.meanBoldFile, pending);
+    mat = spm_get_space(char(pending));
+    spm_get_space(char(pending), anatomy.boldToDisplay * mat);
+    movefile(pending, anatomy.displayMean, 'f');
+end
+end
+
+function anatomy = registerT1(anatomy, preprocessing, overwrite)
+anatomy.biasCorrectedT1 = anatomy.biasCorrectedFile;
 % BOLD realignment only registers volumes within a run. Estimate the
 % between-modality transform from the whole bias-corrected T1. spm_coreg
 % returns parameters without modifying the shared anatomical headers.
@@ -70,8 +113,9 @@ end
 % A small view on the mean-BOLD grid makes alignment inspectable while the
 % original high-resolution T1 and its subject-space header remain reusable.
 anatomy.alignedT1 = replace(anatomy.transformFile, ".mat", "_T1w.nii");
+transform = load(anatomy.transformFile, "t1ToBold");
+anatomy.sourceToBold = transform.t1ToBold;
 if ~isfile(anatomy.alignedT1) || overwrite
-    transform = load(anatomy.transformFile, "t1ToBold");
     source = spm_vol(char(anatomy.biasCorrectedT1));
     source.mat = transform.t1ToBold * source.mat;
     ref = spm_vol(char(preprocessing.meanBoldFile));

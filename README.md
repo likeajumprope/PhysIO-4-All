@@ -125,10 +125,10 @@ be recomputed to reflect a changed censoring setting.
 
 For example, select `Model="model-002"` or `Model="model-003"` in the call
 above. Both aCompCor variants run entirely in PhysIO and use unsmoothed,
-realigned BOLD for PCA. They require one uncompressed `*_T1w.nii` in the
-subject's `anat/` directory; physiological recordings are not required.
-Preprocessing segments the subject T1w and estimates a rigid transform to the run’s mean BOLD.
-The aCompCor stage uses that transform to reslice the eroded tissue masks.
+realigned BOLD for PCA. Preprocessing uses a single uncompressed `*_T1w.nii`
+in the subject's `anat/` directory when available and registers it to mean BOLD.
+Otherwise SPM segments the unsmoothed realignment mean directly. Its WM/CSF
+maps are already on the functional grid. Both paths work without recordings.
 Review those masks before interpreting results, especially for partial
 brain coverage. See [model settings and references](models/README.md) for
 the CONN/fMRIPrep connections and the differences from those pipelines.
@@ -225,13 +225,35 @@ Changing a threshold or erosion setting only rebuilds the masks and dependent
 model outputs. Changing the PC count can reuse the masks as well.
 `OverwriteFrom="preprocess"` explicitly rebuilds the anatomy for a
 run. The first run after upgrading creates a subject-level segmentation
-checkpoint. Recording-based models can also run on datasets without a T1w.
+checkpoint. Without a T1w, the cache is specific to the mean BOLD used,
+including the run and quick-check volume selection. Inspect EPI-derived
+tissue masks carefully where contrast is weak, distorted, or coverage is partial.
+
+### First-level glass-brain coordinates
+
+Preprocessing reads `Affine` from SPM's segmentation output (`*_seg8.mat`).
+It maps source-image millimetres to tissue-template millimetres. For T1w
+segmentation the pipeline first maps BOLD coordinates back to T1w; for
+mean-EPI segmentation those frames already coincide. From this affine it
+keeps the closest proper rotation and sets the translation so the affine's
+estimated MNI origin stays at zero. The matrix is available as
+`results.preprocess.anatomy.boldToDisplay`.
+
+SPM uses this rigid frame for the fitted first-level maps, peak coordinates,
+and glass-brain display. `anatomy.displayMean` is the matching report background.
+Each voxel keeps its acquired size and position relative to its neighbours.
+Peak locations are approximate. A short slab can fit inside the template
+outline at several different positions. In the ds004645 sub-01 quick check,
+the T1w and EPI-only estimates placed the slab centre about 47 mm apart.
+Inspect the tissue masks and registration before anatomical interpretation.
+Use the normalized maps and a shared coverage mask for voxelwise group analysis.
 
 ### Standard-space first-level maps
 
 Set `NormalizeMaps=true` on a pipeline run that includes assessment to
 export 3-D result maps to the MNI grid of the pinned SPM tissue template.
-The default is false. This option requires a subject T1w. It can be enabled
+The default is false. The export uses the deformation from the selected
+segmentation source (T1w or mean EPI). It can be enabled
 on a completed analysis with `OverwriteFrom="none"`.
 
 ```matlab
@@ -245,7 +267,8 @@ SPM writes the subject deformation from its saved segmentation parameters.
 The export composes this deformation with the run's rigid registration and
 samples each map once, with trilinear interpolation and no modulation or
 additional smoothing. The GLM analysis mask uses nearest neighbour.
-The 4-D BOLD series and fitted GLM stay in native space.
+The 4-D BOLD series stays in its acquisition frame. First-level maps retain
+the native voxel grid with the rigid display orientation.
 The exported files are under the run's `standard_space/<model>/<key>/` folder.
 
 * `maps.effectFiles` and `maps.effectNames` identify signed, unthresholded
@@ -325,7 +348,7 @@ starts the diary, and coordinates four stages:
 
 | Stage | Main function | Broad purpose | Durable output |
 |---|---|---|---|
-| `preprocess` | `physio4all.preprocess`, `physio4all.preprocess_anatomy` | Realign BOLD, optionally smooth it, and register available T1w anatomy to mean BOLD. | Functional images, motion parameters, native tissue maps, rigid transform, and aligned T1w. |
+| `preprocess` | `physio4all.preprocess`, `physio4all.preprocess_anatomy` | Realign BOLD, optionally smooth it, and segment the T1w or unsmoothed mean EPI. | Functional images, motion parameters, tissue maps, rigid display transform and report background. |
 | `compute_physio` | `physio4all.compute_physio` | Read the physiological logs and create the configured PhysIO nuisance regressors. | `physio.mat`, `multiple_regressors.txt`, BIDS physiology files, and PhysIO figures. |
 | `fit_glm` | `physio4all.fit_glm` | Specify and estimate a nuisance-only SPM first-level model using the processed BOLD data and PhysIO regressors. | `SPM.mat`, beta images, residual variance, mask, and contrast images. |
 | `assess_physio` | `physio4all.assess_physio` | Create PhysIO contrasts and export visual statistical-map and tSNR comparisons. | PDF/PNG statistical maps, NIfTI tSNR maps, and assessment checkpoints. |

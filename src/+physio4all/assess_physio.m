@@ -34,11 +34,7 @@ reportCheckpointFile = fullfile(assessmentFolder, ...
 tsnrCheckpointFile = fullfile(assessmentFolder, ...
     filePrefix + "_desc-tsnr_checkpoint.json");
 
-if isfile(preprocessOutputs.meanBoldFile)
-    structuralFile = preprocessOutputs.meanBoldFile;
-else
-    structuralFile = preprocessOutputs.workingBoldFile;
-end
+structuralFile = preprocessOutputs.anatomy.displayMean;
 
 if ~isfile(reportCheckpointFile)
     reportFiles = exportStatisticalMaps( ...

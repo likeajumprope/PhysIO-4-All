@@ -26,7 +26,8 @@ if includeTsnr
 end
 mask = fullfile(glm.outputFolder, "mask.nii");
 sources = [effects; statistics; metrics; mask];
-signature.version = 1;
+signature.version = 2;
+signature.boldToDisplay = anatomy.boldToDisplay;
 signature.segmentation = physio4all.input_signature(anatomy.segmentationFile);
 signature.registration = physio4all.input_signature(anatomy.transformFile);
 for k = 1:numel(sources)
@@ -52,27 +53,27 @@ if ~isfolder(folder)
 end
 
 % Write the forward normalization field from SPM's saved segmentation
-% parameters. Its lattice is in MNI space and its values are T1 world mm.
+% parameters. Its lattice is in MNI space and its values are source world mm.
 % This needs neither another segmentation nor a normalized BOLD series.
 anatFolder = fileparts(anatomy.segmentationFile);
-fieldFile = fullfile(anatFolder, "y_T1w.nii");
+fieldName = "y_" + anatomy.sourceType + ".nii";
+fieldFile = fullfile(anatFolder, fieldName);
 if ~isfile(fieldFile)
     pending = string(tempname(anatFolder));
     mkdir(pending);
     segment = load(anatomy.segmentationFile);
     spm_preproc_write8(segment, false(6,4), false(1,2), [0 1], ...
         1, 1, nan(2,3), nan, char(pending));
-    movefile(fullfile(pending, "y_T1w.nii"), fieldFile, 'f');
+    movefile(fullfile(pending, fieldName), fieldFile, 'f');
     rmdir(pending);
 end
 field = nifti(char(fieldFile));
-t1mm = reshape(single(field.dat(:,:,:,1,:)), [], 3);
-transform = load(anatomy.transformFile, "t1ToBold");
-rigid = single(transform.t1ToBold);
-% Pull MNI voxels directly from the BOLD-space map. Applying the rigid
-% transform to sample coordinates avoids a second image interpolation.
-boldmm = t1mm * rigid(1:3,1:3).' + rigid(1:3,4).';
-job.comp{1}.supplied.Def = reshape(boldmm, [size(field.dat,1:3), 3]);
+sourceMM = reshape(single(field.dat(:,:,:,1,:)), [], 3);
+% The first-level NIfTI headers already carry the display rigid. Express
+% the pull coordinates in that frame so the nonlinear warp samples once.
+rigid = single(anatomy.boldToDisplay * anatomy.sourceToBold);
+mapMM = sourceMM * rigid(1:3,1:3).' + rigid(1:3,4).';
+job.comp{1}.supplied.Def = reshape(mapMM, [size(field.dat,1:3), 3]);
 job.comp{1}.supplied.mat = field.mat;
 pull.savedir.saveusr = cellstr(folder);
 pull.prefix = 'w';

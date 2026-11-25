@@ -16,7 +16,7 @@ model.physio.includeRvt = false;
 model.physio.includeHrv = false;
 model.physio.noiseComponents = [4 4];
 % WM first, CSF second. Apply the probability cutoff and one-voxel erosion
-% on the native T1w grid, before sampling each mask on the BOLD grid.
+% on the segmentation source grid (T1w, or mean EPI when T1w is absent).
 model.physio.noiseThresholds = [0.5 0.5];
 model.physio.noiseVoxelCrop = [1 1];
 model.assessment.tsnrContrastNames = "Noise Rois";

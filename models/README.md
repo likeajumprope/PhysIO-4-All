@@ -53,17 +53,19 @@ outputs; do not reuse a GLM fitted with the previous regressor matrix.
 The two variants use PhysIO's `model.noise_rois`. Preprocessing and regressor
 extraction use the images in this order.
 
-1. **Segment the subject T1w.** SPM writes the bias-corrected T1w and native
+1. **Segment the subject T1w or the run's unsmoothed mean EPI.** SPM writes the bias-corrected image and native
    WM and CSF probability maps (`c2` and `c3`) under the subject's `anat/`
    derivative. All runs and quick checks using that T1w, tissue template and
-   segmentation settings can share these continuous maps.
+   segmentation settings can share these continuous maps. An EPI-derived
+   segmentation is specific to its source run and volume selection.
 2. **Align anatomy to the run.** BOLD realignment corrects motion within the
    functional series. Preprocessing therefore also estimates one rigid
    transform from the bias-corrected T1w to this run's mean BOLD. It saves the
    transform separately so each run can use the same native tissue maps.
+   The mean-EPI fallback already has the correct alignment.
 3. **Make extraction masks.** During `compute_physio`, threshold each posterior
-   at >0.5 and erode once on the anatomical grid. Apply the saved transform
-   to both mask headers and reslice with nearest-neighbour interpolation.
+   at >0.5 and erode once on the source grid. T1w masks also need the saved
+   transform and nearest-neighbour reslicing. EPI erosion uses EPI-sized voxels.
    The masks must match the unsmoothed BOLD grid and retain enough voxels.
    Changing the threshold or erosion selects new masks.
 4. **Extract regressors with PhysIO.** PhysIO can register each supplied ROI

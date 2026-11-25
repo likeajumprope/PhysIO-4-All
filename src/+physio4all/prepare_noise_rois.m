@@ -1,6 +1,6 @@
 function roiFiles = prepare_noise_rois(preprocessing, settings)
 %PREPARE_NOISE_ROIS Build WM and CSF masks from preprocessed tissue maps.
-%   Erode before reslicing so one crop voxel has the native T1w resolution.
+%   Erode on the segmentation grid (T1w or mean EPI).
 
 anatomy = preprocessing.anatomy;
 signature.transform = physio4all.input_signature(anatomy.transformFile);
@@ -10,7 +10,12 @@ signature.thresholds = settings.noiseThresholds;
 signature.crop = settings.noiseVoxelCrop;
 folder = fullfile(preprocessing.outputFolder, "noise_rois", physio4all.cache_key(signature));
 maskNames = ["wm_mask.nii"; "csf_mask.nii"];
-roiFiles = fullfile(folder, "r" + maskNames);
+maskFiles = fullfile(folder, maskNames);
+reslice = anatomy.sourceType == "T1w";
+roiFiles = maskFiles;
+if reslice
+    roiFiles = fullfile(folder, "r" + maskNames);
+end
 checkpointFile = fullfile(folder, "noise_rois_checkpoint.mat");
 if isfile(checkpointFile) && all(isfile(roiFiles))
     validateMasks(roiFiles, preprocessing.realignedBoldFile, settings);
@@ -21,8 +26,6 @@ if ~isfolder(folder)
     mkdir(folder);
 end
 
-transform = load(anatomy.transformFile, "t1ToBold");
-maskFiles = fullfile(folder, maskNames);
 for tissue = 1:2
     volume = spm_vol(char(anatomy.tissueFiles(tissue)));
     probability = spm_read_vols(volume);
@@ -32,7 +35,7 @@ for tissue = 1:2
         mask = spm_erode(mask);
     end
     % Apply the estimated transform only to the new binary mask header.
-    volume.mat = transform.t1ToBold * volume.mat;
+    volume.mat = anatomy.sourceToBold * volume.mat;
     volume.fname = char(maskFiles(tissue));
     volume.dt = [spm_type('uint8') 0];
     volume.pinfo = [1; 0; 0];
@@ -43,7 +46,9 @@ end
 % on the mean BOLD grid using nearest-neighbour interpolation.
 flags = struct('interp', 0, 'mask', false, 'mean', false, 'which', 1, ...
     'wrap', [0 0 0], 'prefix', 'r');
-spm_reslice(cellstr([preprocessing.meanBoldFile; maskFiles]), flags);
+if reslice
+    spm_reslice(cellstr([preprocessing.meanBoldFile; maskFiles]), flags);
+end
 validateMasks(roiFiles, preprocessing.realignedBoldFile, settings);
 save(checkpointFile, "signature", "roiFiles");
 end

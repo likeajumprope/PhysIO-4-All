@@ -83,10 +83,6 @@ initializeDependencies(example.repoRoot);
 
 runInfo = physio4all.resolve_files( ...
     example, subjectID, options.Run, dataRoot);
-if options.NormalizeMaps && ~isfield(runInfo, "anatomicalFile")
-    error("physio4all:NormalizationAnatomy", ...
-        "Standard-space export requires one uncompressed subject T1w image.");
-end
 runInfo.fullNVolumes = runInfo.nVolumes;
 if options.QuickCheck
     runInfo.nVolumes = min(runInfo.fullNVolumes, options.QuickCheckVolumes);
@@ -110,7 +106,7 @@ analysisSignature.cardiac = physio4all.input_signature(runInfo.cardiacFile);
 analysisSignature.respiration = physio4all.input_signature(runInfo.respirationFile);
 analysisSignature.timing = physio4all.input_signature(runInfo.scanTimingFile);
 usesTissueRegressors = isfield(example.physio, "method") && example.physio.method == "acompcor";
-if usesTissueRegressors
+if usesTissueRegressors && isfield(runInfo, "anatomicalFile")
     analysisSignature.anatomical = physio4all.input_signature(runInfo.anatomicalFile);
 end
 analysisKey = physio4all.cache_key(analysisSignature);
@@ -130,12 +126,14 @@ if plan.required(1)
         runInfo, example, workFolder, preprocessFolder, ...
         Overwrite=plan.overwrite(1), ...
         SmoothingFwhm=model.preprocessing.smoothingFwhm);
-    % Align anatomy for every model with a T1, including preprocess-only runs.
+    % The mean EPI can use the same segmentation path as a subject T1w.
+    source = preprocessOutputs.meanBoldFile;
     if isfield(runInfo, "anatomicalFile")
-        subjectFolder = fullfile(derivativesRoot, example.id, subjectID);
-        preprocessOutputs.anatomy = physio4all.preprocess_anatomy( ...
-            runInfo.anatomicalFile, subjectFolder, preprocessOutputs, plan.overwrite(1));
+        source = runInfo.anatomicalFile;
     end
+    subjectFolder = fullfile(derivativesRoot, example.id, subjectID);
+    preprocessOutputs.anatomy = physio4all.preprocess_anatomy( ...
+        source, subjectFolder, preprocessOutputs, plan.overwrite(1));
 end
 
 if plan.required(2)
@@ -157,6 +155,7 @@ end
 if plan.required(3)
     glmSignature.analysis = analysisKey;
     glmSignature.regressors = physio4all.input_signature(physioOutputs.regressorsFile);
+    glmSignature.boldToDisplay = preprocessOutputs.anatomy.boldToDisplay;
     glmFolder = fullfile(glmFolder, physio4all.cache_key(glmSignature));
     glmOutputs = physio4all.fit_glm( ...
         runInfo, preprocessOutputs, physioOutputs, example, glmFolder, ...
