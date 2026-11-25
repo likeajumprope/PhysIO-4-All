@@ -31,12 +31,24 @@ boldJsonFile = fullfile(funcFolder, boldJsonBaseName);
 assertFileExists(boldFile, "BOLD image");
 assertFileExists(boldJsonFile, "BOLD JSON sidecar");
 
-cardiacFile = selectOneFile(physioFolder, ...
-    sprintf(example.files.cardiac, runNumber), "cardiac log");
-respirationFile = selectOneFile(physioFolder, ...
-    sprintf(example.files.respiration, runNumber), "respiration log");
-scanTimingFile = selectOneFile(physioFolder, ...
-    sprintf(example.files.scanTiming, runNumber), "scan-timing log");
+cardiacFile = "";
+respirationFile = "";
+scanTimingFile = "";
+% The run mean is available as a segmentation fallback after realignment.
+anatFolder = fullfile(subjectRoot, "anat");
+if ~isempty(dir(fullfile(anatFolder, subjectID + "*_T1w.nii")))
+    runInfo.anatomicalFile = string(selectOneFile( ...
+        anatFolder, ...
+        "^" + subjectID + ".*_T1w[.]nii$", "uncompressed T1w image"));
+end
+if ~physio4all.uses_acompcor(example.physio)
+    cardiacFile = selectOneFile(physioFolder, ...
+        sprintf(example.files.cardiac, runNumber), "cardiac log");
+    respirationFile = selectOneFile(physioFolder, ...
+        sprintf(example.files.respiration, runNumber), "respiration log");
+    scanTimingFile = selectOneFile(physioFolder, ...
+        sprintf(example.files.scanTiming, runNumber), "scan-timing log");
+end
 
 metadata = jsondecode(fileread(boldJsonFile));
 niftiMetadata = niftiinfo(boldFile);

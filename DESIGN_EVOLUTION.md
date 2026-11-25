@@ -1,60 +1,42 @@
-# From BrainHack Prototype to PhysIO-4-All
+# Design history
 
-PhysIO-4-All grew from the lightweight brainstem-fMRI workflow in the
-[`brainhack23` branch of `mrikasper/brainhack-physio`](https://github.com/mrikasper/brainhack-physio/tree/brainhack23).
-That repository demonstrated the complete scientific sequence for one example:
-SPM realignment and smoothing, PhysIO regressor creation, a nuisance-only GLM,
-and visual assessment with statistical and tSNR maps.
+PhysIO-4-All began with a BrainHack workshop analysis of brainstem fMRI. The
+workshop scripts realigned and smoothed the BOLD series, used PhysIO to model
+recorded physiology and motion, and fitted a nuisance-only SPM GLM. Contrast
+maps and temporal signal-to-noise ratio (tSNR) gains showed where the model
+accounted for variance. [Original BrainHack workflow](https://github.com/mrikasper/brainhack-physio/tree/brainhack23)
 
-## What was retained
+## Why datasets and models became separate
 
-- The intentionally lightweight SPM preprocessing.
-- PhysIO regressors combining RETROICOR, RVT, HRV, and movement terms.
-- A nuisance-only first-level SPM GLM for assessing physiological-noise models.
-- Statistical-map and tSNR-gain outputs for visual quality assessment.
-- Dataset-specific workarounds, including the documented BrainHack
-  `Nslices=28` timing-log workaround.
+The workshop scripts and saved SPM batches combined acquisition details
+with analysis choices. For example, the BrainHack recordings needed a
+dataset-specific PhysIO slice-count workaround. Keeping that choice with
+the dataset allowed a second example, the ds004645 fast-fMRI acquisition,
+to use the same pipeline with its own timing and file conventions.
+[Pipeline refactor](https://github.com/likeajumprope/PhysIO-4-All/commit/671f54a64c4a2ec452fca02bc8b27889ce05fb84) · [BrainHack timing workaround](https://github.com/likeajumprope/PhysIO-4-All/commit/623ab9e340670801e6add783b552356e8f78005b) · [Fast-fMRI example](https://github.com/likeajumprope/PhysIO-4-All/pull/1)
 
-## What was generalized
+## What model comparison changed
 
-The original script and saved `matlabbatch` jobs mixed reusable analysis logic
-with paths and parameters for a particular dataset. PhysIO-4-All separates
-those concerns:
+Comparing RETROICOR combinations with two aCompCor variants on the same run
+made it useful to vary the regressors while holding the images and GLM
+settings fixed. Quick checks used the first 100 volumes to exercise the
+whole workflow. Caching realignment and segmentation by their inputs let
+models share that work. Keeping the tissue probabilities also meant that
+changing a mask threshold no longer required segmenting the subject again.
+[Model family](https://github.com/likeajumprope/PhysIO-4-All/commit/62a34a0950f5f96234a16bda9997cce3526f709e) · [Quick checks and reuse](https://github.com/likeajumprope/PhysIO-4-All/commit/71eec02e8e573a8314ef6e487b593207d2db2de7) · [Shared tissue maps](https://github.com/likeajumprope/PhysIO-4-All/commit/847a20584dad77e27b1db9802506f9816d7746cc)
 
-- `examples/` defines dataset discovery, acquisition metadata, and known
-  dataset-specific behavior.
-- `models/` defines reusable preprocessing, PhysIO, GLM, and assessment choices.
-- `src/+physio4all/` implements the shared pipeline as a MATLAB namespace.
-- `physio4all_run` provides one public entry point for selecting an example,
-  subject, run, model, stages, and storage roots.
-- `data/`, `work/`, and `derivatives/` separate immutable downloads,
-  disposable SPM intermediates, and durable results.
+## Why display alignment and group normalization differ
 
-The pipeline also gained resumable checkpoints, model-labelled GLM and
-assessment outputs, predictable diary logs, configurable scratch storage, and
-tests for configuration and batch construction.
+The first-level maps kept the acquired voxel grid. For group analysis,
+warping the 3-D summaries saved the cost of writing a normalized 4-D BOLD
+series. During first-level review, scanner coordinates placed the maps
+poorly on SPM's glass brain. Reusing the rigid part of the
+segmentation affine gave the reports an approximate MNI origin without
+resampling the fitted data. Using mean EPI as the segmentation source also
+extended this workflow to runs without a T1w. The partial-coverage fast-fMRI
+example showed why a plausible glass-brain outline alone is insufficient
+evidence of anatomical correspondence.
+[Standard-space export](https://github.com/likeajumprope/PhysIO-4-All/commit/73d635d7dffdbafb5c7adf96ccc18d3fbad1bd32) · [Glass-brain alignment and mean-EPI fallback](https://github.com/likeajumprope/PhysIO-4-All/commit/7db7aab9bbe2622a0665207ab32c44f70fd0014a)
 
-## Current pipeline shape
-
-```text
-downloaded data
-    -> realign/reslice and smooth
-    -> compute PhysIO regressors
-    -> specify and estimate nuisance GLM
-    -> export statistical maps and tSNR gains
-```
-
-This preserves the original BrainHack analysis theme while making it possible
-to add another public dataset mainly by supplying a small example definition
-and, only when the analysis changes, a new model definition.
-
-## Adding another example
-
-1. Add `examples/<example-id>/physio4all_example_<example_id>.m` with file
-   patterns, acquisition settings, and documented dataset workarounds.
-2. Add a short example README describing the source data and invocation.
-3. Reuse an existing `model-###`, or add a model when analysis parameters—not
-   merely dataset paths or acquisition metadata—change.
-4. Extend file-resolution and batch-construction tests before running the full
-   dataset.
-
+For current behavior, see the [pipeline guide](README.md) and
+[model settings and scientific references](models/README.md).

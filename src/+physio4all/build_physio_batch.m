@@ -91,6 +91,10 @@ matlabbatch{1}.spm.tools.physio.model.movement.yes.order = ...
     settings.movementOrder;
 matlabbatch{1}.spm.tools.physio.model.movement.yes.censoring_method = ...
     char(settings.movementCensoringMethod);
+if isfield(settings, "movementCensoringEnabled") && ...
+        ~settings.movementCensoringEnabled
+    matlabbatch{1}.spm.tools.physio.model.movement.yes.censoring_method = 'none';
+end
 matlabbatch{1}.spm.tools.physio.model.movement.yes.censoring_threshold = ...
     settings.movementCensoringThreshold;
 matlabbatch{1}.spm.tools.physio.model.other.no = struct([]);
@@ -99,5 +103,39 @@ matlabbatch{1}.spm.tools.physio.verbose.level = 2;
 matlabbatch{1}.spm.tools.physio.verbose.fig_output_file = ...
     'physio.fig';
 matlabbatch{1}.spm.tools.physio.verbose.use_tabs = false;
+
+% Defaults preserve older configurations that predate explicit switches.
+if isfield(settings, "includeRetroicor") && ~settings.includeRetroicor
+    matlabbatch{1}.spm.tools.physio.model.retroicor = struct('no', struct([]));
+end
+if isfield(settings, "includeRvt") && ~settings.includeRvt
+    matlabbatch{1}.spm.tools.physio.model.rvt = struct('no', struct([]));
+end
+if isfield(settings, "includeHrv") && ~settings.includeHrv
+    matlabbatch{1}.spm.tools.physio.model.hrv = struct('no', struct([]));
+end
+
+if physio4all.uses_acompcor(settings)
+    batch = matlabbatch{1}.spm.tools.physio;
+    batch.log_files.cardiac = {''};
+    batch.log_files.respiration = {''};
+    batch.log_files.scan_timing = {''};
+    batch.scan_timing.sync = struct('nominal', struct([]));
+    batch.model.retroicor = struct('no', struct([]));
+    batch.model.rvt = struct('no', struct([]));
+    batch.model.hrv = struct('no', struct([]));
+    % Smoothing would mix signals across tissue boundaries before PCA.
+    noise.fmri_files = cellstr(preprocessOutputs.realignedBoldFile);
+    noise.roi_files = cellstr(preprocessOutputs.noiseRoiFiles(:));
+    % PhysIO estimates per-ROI transforms if grids differ. The masks
+    % already match the realigned BOLD grid.
+    noise.force_coregister = 'No';
+    % Thresholding and erosion have already taken place on the source grid.
+    noise.thresholds = 0.5;
+    noise.n_voxel_crop = 0;
+    noise.n_components = settings.noiseComponents;
+    batch.model.noise_rois = struct('yes', noise);
+    matlabbatch{1}.spm.tools.physio = batch;
+end
 
 end

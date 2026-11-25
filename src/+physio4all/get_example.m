@@ -8,22 +8,12 @@ end
 exampleID = physio4all_resolve_example_id(exampleID);
 repoRoot = fileparts(fileparts(fileparts(mfilename('fullpath'))));
 
-switch exampleID
-    case "openneuro_ds004808_brainhack23"
-        configFolder = fullfile(repoRoot, "examples", ...
-            "openneuro_ds004808_brainhack23");
-        originalPath = path;
-        restorePath = onCleanup(@() path(originalPath));
-        addpath(configFolder);
-        example = physio4all_example_openneuro_ds004808_brainhack23();
-    case "openneuro_ds004645_fastfmri"
-        configFolder = fullfile(repoRoot, "examples", ...
-            "openneuro_ds004645_fastfmri");
-        originalPath = path;
-        restorePath = onCleanup(@() path(originalPath));
-        addpath(configFolder);
-        example = physio4all_example_openneuro_ds004645_fastfmri();
-end
+% Resolve the registry ID first, then load its conventionally named file.
+configFolder = fullfile(repoRoot, "examples", exampleID);
+originalPath = path;
+restorePath = onCleanup(@() path(originalPath));
+addpath(configFolder);
+example = feval("physio4all_example_" + exampleID);
 
 example.repoRoot = string(repoRoot);
 example.configFolder = string(configFolder);

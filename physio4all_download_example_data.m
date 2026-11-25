@@ -68,16 +68,10 @@ for iExample = 1:numel(exampleIDs)
     fprintf('Downloading: %s (%s)\n', ...
         registry(iRegistry).mnemonic, exampleID);
 
-    switch exampleID
-        case "openneuro_ds004808_brainhack23"
-            destRoot = fullfile(dataRoot, 'openneuro', 'ds004808');
-            physio4all_download_example_data_openneuro_ds004808_brainhack23( ...
-                destRoot, subjectIDs, doOverwrite);
-        case "openneuro_ds004645_fastfmri"
-            destRoot = fullfile(dataRoot, 'openneuro', 'ds004645');
-            physio4all_download_example_data_openneuro_ds004645_fastfmri( ...
-                destRoot, subjectIDs, doOverwrite);
-    end
+    dataset = registry(iRegistry);
+    destRoot = fullfile(dataRoot, lower(dataset.source), dataset.accession);
+    feval("physio4all_download_example_data_" + exampleID, ...
+        destRoot, subjectIDs, doOverwrite);
 
     fprintf('\n');
 end
